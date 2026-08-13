@@ -79,9 +79,9 @@ Chunk filenames = mechanism only. Links: `[[wiki/<topic>/<subject>/hook-prologue
 1. List all mechanisms → each is a chunk candidate.
 2. One chunk per mechanism. Never merge mechanisms.
 3. Navigation at top of each chunk:
-   ```markdown
-   [Hub]([[wiki/<topic>/<subject>/_hub]]) | [Prev](...) | [Next](...)
-   ```
+    ```markdown
+    [[wiki/<topic>/<subject>/_hub]] | [[wiki/<topic>/<subject>/prev-chunk]] | [[wiki/<topic>/<subject>/next-chunk]]
+    ```
 4. Per chunk: verbatim code in fenced blocks, bullets over prose, deep headers (`###`/`####`).
 5. Hub = decision router with 2-3 sentence summary per chunk.
 6. Add Hub to `_master-index.md` + topic `_index.md`. Add chunks to topic `_index.md`.

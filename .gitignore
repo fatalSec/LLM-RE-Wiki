@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# KB runtime
+knowledge_base/raw/assets/*
+!knowledge_base/raw/assets/.gitkeep
+knowledge_base/graph/graph_data.js

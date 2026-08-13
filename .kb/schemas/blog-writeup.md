@@ -25,7 +25,7 @@ llm_summary: "<A dense, 1-2 sentence summary of the article's technique and core
 
 # <Title>
 
-[Hub]([[wiki/<topic>/<hub-name>]]) | [Prev]([[wiki/<topic>/<prev>]]) | [Next]([[wiki/<topic>/<next>]])
+[[wiki/<topic>/<hub-name>]] | [[wiki/<topic>/<prev>]] | [[wiki/<topic>/<next>]]
 *(Remove Navigation line if this is a standalone article)*
 
 ## This Article Answers

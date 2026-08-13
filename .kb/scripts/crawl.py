@@ -239,7 +239,7 @@ def extract_title(html: str, readability_title: str) -> str:
     # Try readability title (often includes site name suffix)
     if readability_title:
         # Strip common site name patterns: "Title - Site" or "Title | Site"
-        cleaned = re.split(r"\s*[|–—-]\s*", readability_title, maxsplit=1)[0].strip()
+        cleaned = re.split(r"\s*[|\-–—]\s*", readability_title, maxsplit=1)[0].strip()
         if cleaned and len(cleaned) > 5:
             return cleaned
         return readability_title
