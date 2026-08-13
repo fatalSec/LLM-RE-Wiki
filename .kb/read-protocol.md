@@ -76,6 +76,6 @@ Module.getExportByName(null, 'rtld_db_dlactivity').writeByteArray([0xc0, 0x03, 0
 
 If a query is not fully covered by any wiki article:
 
-1. State clearly what is missing from the local KB (e.g., *"Not currently documented in local wiki"`).
+1. State clearly what is missing from the local KB (e.g., `"Not currently documented in local wiki"`).
 2. Provide the full technical solution inline, marking all model-generated claims and code blocks as `[AI Synthesis]`.
 3. Offer to compile a new raw KB article from the AI response so it can be saved into the KB inbox!
