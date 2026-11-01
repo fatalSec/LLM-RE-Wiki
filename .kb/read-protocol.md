@@ -1,49 +1,54 @@
 # READ MODE — Query Protocol
 
-> **Scope:** How to navigate the KB and answer questions.
+> **Scope:** How to navigate the KB efficiently and answer technical queries.
 > **Load when:** User or consuming agent queries the KB.
 > **Prerequisite:** Read `core-rules.md` first.
 > **See also:** [core-rules.md](core-rules.md) | [index-formats.md](index-formats.md)
 
 ---
 
-## Direct Markdown Traversal Steps
+## Retrieval Protocols: Fast-Path vs. Discovery Path
 
-Follow this protocol when retrieving information from the KB:
+Choose the retrieval route based on query specificity to minimize context token consumption:
 
-### Step 1 — Route via Master Index
 ```
-Read knowledge_base/wiki/_master-index.md
-→ Scan the Quick Navigation list or Topic Index table
-→ Identify the relevant topic folder (e.g. wiki/rasp/ or wiki/obfuscation/)
-→ If the query lies outside documented topics, state "not in KB" immediately
-```
-
-### Step 2 — Navigate Topic Index
-```
-Read wiki/<topic>/_index.md
-→ Read the "Quick Navigation" decision tree to find specific articles
-→ If the target is not listed in this topic, stop and check other indices
+┌────────────────────────────────────────────────────────┐
+│                      Query Type                        │
+├──────────────────────────┬─────────────────────────────┤
+│  Specific Technique,     │  Fast-Path (1-2 Turns)      │
+│  Tool, Function, or CVE  │  Direct search -> Read File │
+├──────────────────────────┼─────────────────────────────┤
+│  Broad, Exploratory,     │  Discovery Path             │
+│  or Unknown Category     │  _master-index -> Topic     │
+└──────────────────────────┴─────────────────────────────┘
 ```
 
-### Step 3 — Read YAML Metadata & Content
-```
-Read the specific article markdown file
-→ Verify tool_versions and llm_summary in the YAML frontmatter first
-→ Read Key Takeaways and Walkthrough sections
-→ If the article is part of a hub+chunk series, check the hub for related chunks
-```
+### Route A: Fast-Path Retrieval (Preferred — 1-2 Turns)
+1. **Targeted Search:** Search directly across `knowledge_base/wiki/` using keywords or tags:
+   - Shell search: `rg -l -i "<keyword>" knowledge_base/wiki/` or check `llm_summary` in frontmatter.
+2. **Direct Read:** Read the matched article or Cohesive Subject Module directly.
+3. **Synthesis:** Jump straight to Step 4 (Response Composition).
 
-### Step 4 — Compose Single Consolidated Technical Response
+### Route B: Discovery Path Traversal (Broad Queries)
+1. **Route via Master Index:** Read `knowledge_base/wiki/_master-index.md` to identify the candidate topic directory (`wiki/<topic>/`).
+2. **Navigate Topic Index:** Read `wiki/<topic>/_index.md` to select the specific module or hub.
+3. **Read YAML & Module Content:** Read the targeted module, checking `tool_versions` and `llm_summary`.
+
+---
+
+## Response Composition (Single Consolidated Technical Document)
 
 Compose **ONE seamless, highly granular technical document**. High-level abstract summaries are strictly forbidden. Every mechanism must be explained down to its exact function names, assembly opcodes, register operations, C/C++ structures, or JNI signatures.
 
-#### Mandatory Formatting Rules:
+### Formatting Rules:
 1. **NO Separate Section Headers:** DO NOT output separate section headers like `## 📚 Knowledge Base Findings` or `## 🧠 AI Intelligence & Analysis`.
 2. **Deep Technical Granularity:** Include exact function names (`rtld_db_dlactivity`), opcodes (`sub sp, sp, #0x30`), structs (`DT_ANDROID_RELA`), and code snippets. Show **HOW** it works, not just high-level descriptions.
-3. **Inline Provenance Markers:** Use the claim marker system from `core-rules.md` §2.1. Tag every sentence and code block inline with its source marker (`[V]`, `[I]`, `[U]`, `[VS]`, `[X]`, `[AI Synthesis]`).
+3. **Provenance Markers:**
+   - Facts confirmed by local wiki files are cited with the article link and `[V]` (e.g. `[[wiki/rasp/r2-pay#anti-debug]] [V]`).
+   - Use delta markers inline for non-verified content: `[I]` (Inferred), `[U]` (Unverified), `[VS: Target]` (Version-Specific), `[X]` (Contradicted).
+   - Pre-trained model intelligence, general assembly patterns, or bypass suggestions not in the local wiki MUST be marked `[AI Synthesis]`.
 
-#### Example Response:
+### Example Response:
 ```markdown
 # DexProtector (Licel 5.x) Detection & Anti-Analysis Architecture
 
@@ -76,6 +81,6 @@ Module.getExportByName(null, 'rtld_db_dlactivity').writeByteArray([0xc0, 0x03, 0
 
 If a query is not fully covered by any wiki article:
 
-1. State clearly what is missing from the local KB (e.g., *"Not currently documented in local wiki"`).
+1. State clearly what is missing from the local KB (e.g., *"Not currently documented in local wiki"*).
 2. Provide the full technical solution inline, marking all model-generated claims and code blocks as `[AI Synthesis]`.
 3. Offer to compile a new raw KB article from the AI response so it can be saved into the KB inbox!

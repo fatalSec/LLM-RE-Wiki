@@ -48,7 +48,11 @@ Looking for... → Go to...
 
 ## 3. Cross-Topic Indexes
 
-Note: Build these dynamically by parsing the YAML frontmatter of all articles during `reindex`.
+> **Deterministic Generation:** These secondary tables are compiled automatically from article YAML frontmatter via:
+> ```bash
+> python3 .kb/scripts/index_builder.py
+> ```
+> Do not spend LLM generation tokens editing these tables manually during compile.
 
 ### `_tools-index.md`
 ```markdown
@@ -82,9 +86,10 @@ Note: Build these dynamically by parsing the YAML frontmatter of all articles du
 
 ## Index Maintenance Rules
 
-- **Every article** must appear in its topic's `_index.md` and at least one cross-topic index.
-- **Link format:** Use simple relative Obsidian links, e.g., `[[wiki/topic/article-name]]` or `[[article-name]]` if within the same directory. Do not use absolute repository paths.
-- **YAML Extraction:** When updating tables, pull information directly from the article's YAML block (especially `llm_summary`, `tool_versions`, and `type`).
-- **Article count** and **last updated** fields must be refreshed on every index update.
-- **Graph Visualizer:** After index updates, the compile pipeline auto-runs `python3 .kb/scripts/graph_generator.py` to regenerate `knowledge_base/graph/graph_data.js`.
+- **Topic `_index.md`:** The LLM manually registers new articles with a 1-line link and summary.
+- **Cross-Topic Indexes:** Automatically regenerated via `python3 .kb/scripts/index_builder.py`.
+- **Link format:** Use standard Obsidian links:
+  - Canonical format: `[[wiki/topic/subject]]` or with anchors: `[[wiki/topic/subject#anchor|Label]]`.
+  - Same-directory shorthand: `[[article-name]]` (resolved automatically relative to parent directory).
+- **Graph Visualizer:** Automatically updated whenever `index_builder.py` is invoked.
 

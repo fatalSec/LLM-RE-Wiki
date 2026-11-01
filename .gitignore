@@ -1,0 +1,32 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+
+# Virtual environments
+.venv/
+env/
+venv/
+ENV/
+.kb/scripts/.venv/
+
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Visualizer runtime build artifact
+knowledge_base/graph/graph_data.js
+
+# Editor & IDE artifacts
+.idea/
+.vscode/
+*.swp
+*.swo
+*~

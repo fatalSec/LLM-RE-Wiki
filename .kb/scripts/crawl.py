@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 crawl.py — Portable web crawler for the Android RE Knowledge Base.
 

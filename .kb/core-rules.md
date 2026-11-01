@@ -15,8 +15,9 @@
 - **No paraphrasing code:** Function names, offsets, opcodes, and JNI signatures must be kept verbatim from the source.
 - **Image Handling & Inlining:** Transcribe image text, assembly instructions, or diagram flows where accessible. Preserve image links with captions/alt-text when pixel data is unreadable in the runner.
 - **Version-pin everything:** Tool and SDK versions (e.g. Frida 16.x vs 15.x, Android 13 vs 14) must be explicitly pinned.
-- **Unified Granular Responses:** In query/search mode, output ONE seamless, highly granular technical document containing exact opcodes, function names, C/assembly snippets, and IPC structures. Inline model intelligence (`[AI Synthesis]`) directly alongside KB verified facts (`[V]` / `[[wiki/...]]`). NEVER output separate section headers like "Knowledge Base Findings" vs "AI Intelligence & Analysis", and NEVER provide abstract high-level summaries.
-- **Auto-Graph on compile:** Automatically run `python3 .kb/scripts/graph_generator.py` after any `compile` operation to keep the Knowledge Graph Visualizer synchronized.
+- **Unified Granular Responses:** In query/search mode, output ONE seamless, highly granular technical document containing exact opcodes, function names, C/assembly snippets, and IPC structures. Inline model intelligence (`[AI Synthesis]`) directly alongside KB verified facts (`[V]` / `[[wiki/...]]`). Do not output separate high-level summary sections.
+- **Checklist Verification:** At the start of compile, record a coverage checklist of all `##` headings and code blocks. Verify all items are accounted for before finalizing.
+- **Auto-Index on compile:** Run `python3 .kb/scripts/index_builder.py` after compilation to update secondary indexes, validate links, and synchronize the Knowledge Graph Visualizer.
 
 ---
 
@@ -24,24 +25,27 @@
 
 Every factual claim in a wiki article must carry a provenance marker to prevent consuming LLMs from confabulating when traversing the KB.
 
-### 2.1 Inline Claim Markers
+### 2.1 Provenance & Inline Claim Markers
 
-Append to any sentence containing a factual claim:
+**Scoped Provenance Baseline:** All factual claims describing the target within an article are implicitly verified (`[V]`) under the primary `source:` declared in the YAML frontmatter.
 
-| Marker | Meaning |
-|---|---|
-| `[V]` | Verified — directly confirmed from the cited primary source |
-| `[I]` | Inferred — logical conclusion from verified facts, not explicitly stated |
-| `[U]` | Unverified — from blog/forum/secondary source, not independently confirmed |
-| `[VS: Frida 16.x]` | Version-specific — only applies to stated version/environment |
-| `[X: see <article>]` | Contradicted — conflicts with another article; check both |
-| `[AI Synthesis]` | AI Model Intelligence — general pre-trained reasoning, code patterns, or context |
+To maximize token efficiency without losing precision, use inline markers specifically to tag **deltas, nuances, and deviations**:
+
+| Marker | Meaning | Usage |
+|---|---|---|
+| `[V]` | Verified | Implicit for primary source claims; explicit when contrasting against [U] or [AI] |
+| `[I]` | Inferred | Logical conclusion from verified facts, not explicitly stated |
+| `[U]` | Unverified | From secondary sources, blogs, or forums without direct confirmation |
+| `[VS: Frida 16.x]` | Version-specific | Behavioral invariants tied to a specific tool/SDK version |
+| `[X: see <article>]` | Contradicted | Conflicting behavior across multiple sources; check both |
+| `[AI Synthesis]` | Model Intelligence | General pre-trained reasoning, code patterns, or bypass suggestions not in KB |
 
 **Example:**
 ```markdown
-Frida Stalker uses a code cache of 512KB per thread by default. [V]
-Increasing this may reduce tracing overhead on heavy targets. [I]
-To bypass this check, attach a script before thread initialization: [AI Synthesis]
+Frida Stalker allocates a 512KB code cache per thread by default.
+Increasing this cache size may reduce tracing overhead on heavy targets. [I]
+On Frida 16.2+, thread monitoring checks bypass earlier hook patterns. [VS: Frida 16.2+]
+To bypass this check dynamically, attach a script before thread initialization: [AI Synthesis]
 ```
 
 ### 2.2 Mandatory Uncertainty Sections

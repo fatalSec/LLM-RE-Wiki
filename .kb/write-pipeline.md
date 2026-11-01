@@ -26,65 +26,67 @@ Classify the raw file, then load the matching schema from `.kb/schemas/`.
 
 **ZERO-LOSS DIRECTIVE:** Never summarize. Preserve ALL offsets, hex, registers, paths, syscalls, bypass scripts, and code verbatim.
 
-1. **Read** entire raw file. **List all `##` headings and code blocks** as a coverage checklist.
+1. **Read** entire raw file. **Extract a pre-flight checklist** of all `##` headings, technical mechanisms, and code blocks.
 2. **Images:** Process per §4. Extract text before writing.
 3. **Classify** → select schema (§1).
-4. **Pre-flight plan:** List chunks, hub file, and indexes to update.
+4. **Pre-flight plan:** Determine layout: **Cohesive Subject Module** (preferred for <1,200 words per §3) or **Hub + Semantic Chunks** (for massive multi-stage deep dives).
 5. **Load schema** from `.kb/schemas/<type>.md`.
-6. **YAML metadata:** Hub vs chunk rules in §3. Dense 1-2 sentence `llm_summary`.
-7. **Write articles** per schema. Check off headings/code from step 1 as you write. Updates → §5.
-8. **Update** topic `_index.md` + cross-topic indexes (→ `index-formats.md`).
-9. **Cross-link** every new article from ≥1 existing article.
-10. **Link verification:** Check all `[[wiki links]]` resolve. Stub missing targets.
-11. **Coverage check** (DO NOT re-read raw): confirm every `##` heading and code block is in a chunk.
-12. **Rename** raw file: append `_processed`.
-13. **Graph:** `python3 .kb/scripts/graph_generator.py`
-14. **Log** to `knowledge_base/wiki/log.md`:
+6. **YAML metadata:** Write required fields and a dense 1-2 sentence `llm_summary`.
+7. **Write article(s)** per schema. Check off headings and code from the step 1 checklist as you write.
+8. **Update topic `_index.md`:** Add a 1-line link and summary under the parent topic index.
+9. **Cross-link:** Link every new article from ≥1 existing article or index.
+10. **Coverage check:** Confirm every heading, mechanism, and code block from the step 1 checklist is present in the output. Re-read raw text only if a missing item requires verification.
+11. **Rename** raw file: append `_processed`.
+12. **Automated Indexing & Graph Sync:** Run deterministic indexer:
+    ```bash
+    python3 .kb/scripts/index_builder.py
+    ```
+    *(Automatically compiles `_tools-index`, `_snippets-index`, `_patterns-index`, `_ttp-index`, validates links, and syncs `graph_data.js`).*
+13. **Log** to `knowledge_base/wiki/log.md`:
 ```markdown
 ## [YYYY-MM-DD] compile | <source>
 - Type: <type> | Articles created: <list> | Updated: <list>
-- Indexes updated: <list> | Graph: yes
-- Markers: [V]×N [U]×N [I]×N | Open questions: N
+- Indexes updated: auto (index_builder.py) | Graph: yes
+- Markers: [V] default | [I]×N [U]×N [AI]×N | Open questions: N
 ```
 
 ---
 
-## 3. Splitting & Navigation
+## 3. Architecture: Cohesive Modules vs. Hub + Chunks
 
-**MANDATORY:** Deep-dive articles MUST split into Hub + semantic chunks.
+To maximize token efficiency and prevent "chunk bloat," choose the layout based on target scope:
 
-> The split unit is a **technical mechanism**, NOT a product/target name.
-> DexProtector, SingPass, r2-pay are containers — the mechanisms inside are the chunks.
+| Layout | When to Use | Structure |
+|---|---|---|
+| **Cohesive Subject Module** *(Recommended)* | Single target, challenge, or writeup under ~1,200 words | 1 rich article with semantic anchor headings (`### Mechanism {#anchor}`). Keeps detection + bypass together. |
+| **Hub + Semantic Chunks** | Massive multi-stage systems (>1,200 words) or multi-domain tooling (e.g. DexProtector 5-stage chain) | `_hub.md` decision router + 1 chunk per decoupled phase/mechanism. |
 
-**Split when:** 2+ distinct protection mechanisms, or 3+ distinct `##` technical areas.
-**Single article OK:** Exactly ONE mechanism in depth, or an API reference chunk.
+### Cohesive Subject Module Pattern
+Keep tightly coupled mechanisms (e.g. root check + debug check + bypass) in one document using explicit anchor headings:
+```markdown
+## 1. TracerPid Anti-Debug via /proc/self/status {#anti-debug}
+... [Exact opcodes, syscalls, disassembly] ...
 
-### Directory Layout
+## 2. Frida Named-Pipe Detection {#anti-frida}
+... [Exact thread checks, file descriptor scanning] ...
+
+## Bypass & Neutralization Strategies {#bypass}
+... [Frida scripts, LIEF patches] ...
+```
+Links can target specific mechanisms directly: `[[wiki/topic/subject#anti-debug|TracerPid Detection]]`.
+
+### Hub + Chunk Layout (For Multi-Stage Systems)
 ```
 wiki/<topic>/<subject>/
-├── _hub.md              ← LLM decision router
-├── hook-prologue.md     ← Chunk: mechanism name only, no subject prefix
-├── anti-debug.md
+├── _hub.md              ← LLM decision router with 2-3 sentence summaries
+├── bootstrap.md         ← Chunk: Stage 1 unpacking
+├── anti-debug.md        ← Chunk: Stage 2 integrity checks
 └── ...
 ```
-Chunk filenames = mechanism only. Links: `[[wiki/<topic>/<subject>/hook-prologue]]`
-
-### Hub vs Chunk YAML
-
-**Hub** carries shared metadata: `type`, `topic`, `source`, `tags`, `complexity`, `completeness`, `last_verified`, `tool_versions`, `author`, `published`, `reproducibility`, `llm_summary`.
-
-**Chunks** carry minimal: `type`, `topic`, `source`, `tags`, `complexity`, `llm_summary`.
-
-### Procedure
-1. List all mechanisms → each is a chunk candidate.
-2. One chunk per mechanism. Never merge mechanisms.
-3. Navigation at top of each chunk:
-   ```markdown
-   [Hub]([[wiki/<topic>/<subject>/_hub]]) | [Prev](...) | [Next](...)
-   ```
-4. Per chunk: verbatim code in fenced blocks, bullets over prose, deep headers (`###`/`####`).
-5. Hub = decision router with 2-3 sentence summary per chunk.
-6. Add Hub to `_master-index.md` + topic `_index.md`. Add chunks to topic `_index.md`.
+Chunk filenames = mechanism only. Navigation at top of each chunk:
+```markdown
+[Hub]([[wiki/<topic>/<subject>/_hub]]) | [Prev](...) | [Next](...)
+```
 
 ---
 

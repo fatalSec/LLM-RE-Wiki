@@ -1,4 +1,8 @@
-# LLM-RE-KnowledgeBase-Agent
+# LLM-RE-WIKI
+
+> 📺 **Watched the YouTube Tutorial?**  
+> The exact codebase featured in the [YouTube Walkthrough (youtu.be/8JgcliENtPQ)](https://youtu.be/8JgcliENtPQ) is preserved on the [`v1-video` branch](https://github.com/fatalSec/LLM-RE-WIKI/tree/v1-video).  
+> You are currently on `main` (v2), optimized for token efficiency, fast-path 2-turn retrieval, and automated deterministic indexing.
 
 > A file-based, LLM-driven **Reverse Engineering Knowledge Base custodian**. It ingests blogs, papers, pentest findings, and malware write-ups, compiles them into a rigorously structured, cross-linked markdown wiki with anti-hallucination provenance markers, and renders the whole thing as an interactive knowledge graph.
 
@@ -45,6 +49,7 @@ The system is three tiers: **user commands** (`ingest` / `compile` / `search`) d
 │   └── scripts/
 │       ├── crawl.py           ← Portable web crawler (readability + image downloader)
 │       ├── graph_generator.py ← Builds graph_data.js from wiki links
+│       ├── index_builder.py   ← Deterministic secondary index builder & link validator
 │       └── requirements.txt
 └── knowledge_base/            ← The isolated KB environment (all persistent state)
     ├── raw/                   ← Inbox: unprocessed feeds/reports + downloaded assets
@@ -89,7 +94,8 @@ Drive the agent with natural language or these shorthand commands (see `AGENTS.m
 |---|---|
 | `ingest <url>` | Crawl a URL → raw markdown + local images inbox |
 | `compile <file>` | Process an unprocessed `raw/` file into structured wiki articles |
-| `search <query>` | Query the KB → unified answer (KB facts + AI synthesis, inline) |
+| `search <query>` | Query the KB → fast-path unified answer (KB facts + AI synthesis) |
+| `reindex` | Auto-build secondary indexes, validate links, and sync graph |
 | `graph` | Build & open the interactive knowledge-graph visualizer |
 | `health-check` | Scan for dead links, orphans, missing YAML, stale stubs |
 | `gap report` | Report dead links, stale stubs, and underdeveloped topics |
@@ -103,7 +109,7 @@ Every factual claim in a wiki article carries a marker so downstream LLMs never 
 
 | Marker | Meaning |
 |---|---|
-| `[V]` | **Verified** — directly confirmed from the cited primary source |
+| `[V]` | **Verified** — implicit default for primary source claims; explicit when contrasting |
 | `[I]` | **Inferred** — logical conclusion from verified facts |
 | `[U]` | **Unverified** — from a blog/forum/secondary source |
 | `[VS: Frida 16.x]` | **Version-specific** — only applies to the stated version/environment |
@@ -117,13 +123,13 @@ Every article must also declare `## What This Article Does NOT Cover` and `## Op
 ## Getting started
 
 ### Prerequisites
-- Python 3.10+ (the scripts use `X | None` type-union syntax)
-- An agent/LLM host that reads project instruction files (e.g. Claude Code)
+- Python 3.9+
+- An agent/LLM host that reads project instruction files (e.g. Claude Code, Cursor, Antigravity)
 
 ### 1. Clone
 ```bash
-git clone https://github.com/fatalSec/LLM-RE-KnowledgeBase-Agent.git
-cd LLM-RE-KnowledgeBase-Agent
+git clone https://github.com/fatalSec/LLM-RE-WIKI.git
+cd LLM-RE-WIKI
 ```
 
 ### 2. Set up the Python environment (for crawling & graphing)
@@ -140,9 +146,9 @@ python3 -m venv .kb/scripts/.venv
 ### 4. Point your agent at the repo
 Open the project in your agent host and ask it to, for example, `compile <slug>.md`, `search "DexProtector anti-frida"`, or run a `health-check`. The agent reads `AGENTS.md` and takes it from there.
 
-### 5. Explore the graph
+### 5. Explore the graph & indexes
 ```bash
-.kb/scripts/.venv/bin/python .kb/scripts/graph_generator.py --open
+python3 .kb/scripts/index_builder.py --open
 ```
 
 ---
@@ -152,6 +158,7 @@ Open the project in your agent host and ask it to, for example, `compile <slug>.
 | Script | Purpose | Key dependencies |
 |---|---|---|
 | `.kb/scripts/crawl.py` | Fetch a URL, extract the main article, download images locally, emit raw markdown. Handles data-URI images, SVG/figure recovery, and `.webp`→`.png` conversion. | `requests`, `beautifulsoup4`, `lxml`, `readability-lxml`, `markdownify`, `Pillow` |
+| `.kb/scripts/index_builder.py` | Deterministically parse wiki YAML frontmatter to build `_tools-index.md`, `_snippets-index.md`, `_patterns-index.md`, `_ttp-index.md`, and check link health. | Standard library (uses `PyYAML` if installed) |
 | `.kb/scripts/graph_generator.py` | Parse the wiki, extract Obsidian links, build the node/edge graph, write `graph_data.js`, optionally open the visualizer. | `PyYAML` (optional; falls back to regex frontmatter parsing) |
 
 > **Note:** `crawl.py` prefers the native macOS `sips` tool for `.webp` conversion and only falls back to `Pillow` when `sips` is unavailable. On non-macOS systems, `Pillow` handles the conversion.

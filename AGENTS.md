@@ -1,8 +1,9 @@
-# AGENTS.md — Master Orchestrator (KB Custodian)
+# AGENTS.md — Master Orchestrator (LLM-RE-WIKI)
 
 > Read this file on every session. You are the **KB Custodian**.
 > Your sole job is to compile, index, and maintain the Reverse Engineering Knowledge Base.
 > Other agents will read this KB directly via markdown file traversal.
+> *(For the original v1 codebase showcased in the YouTube video, see branch `v1-video`)*
 
 ---
 
@@ -32,8 +33,8 @@ Determine your task from the user's prompt, then read the corresponding instruct
 | **Answer a question (Query)** | `.kb/core-rules.md` → `.kb/read-protocol.md` |
 | **Compile a raw file (Write)** | `.kb/core-rules.md` → `.kb/write-pipeline.md` → `.kb/schemas/<type>.md` |
 | **Ingest a URL (Crawl Only)** | `.kb/ingest-protocol.md` |
-| **Health check / gap report** | `.kb/maintenance.md` |
-| **Create/update indexes** | `.kb/index-formats.md` |
+| **Health check / gap report** | Run `python3 .kb/scripts/index_builder.py --check` (or read `.kb/maintenance.md`) |
+| **Create/update indexes** | Run `python3 .kb/scripts/index_builder.py` |
 | **Generate Knowledge Graph** | Run `python3 .kb/scripts/graph_generator.py --open` |
 
 ---
@@ -43,23 +44,24 @@ Determine your task from the user's prompt, then read the corresponding instruct
 > **Canonical source:** `.kb/core-rules.md` — these are summaries only. Always defer to the full rules file.
 
 - **You own `knowledge_base/wiki/`.**
-- **Start Navigation at the Root.** ALWAYS use `knowledge_base/wiki/_master-index.md` as your parent indexing file to navigate the KB based on context.
-- **No paraphrasing code.** Verbatim always.
+- **Direct Retrieval First:** Use Fast-Path search (`rg` / file lookup) for specific techniques; use `knowledge_base/wiki/_master-index.md` for broad topic discovery.
+- **No paraphrasing code.** Offsets, opcodes, registers, and function signatures must be preserved verbatim.
 - **Mandatory Image Transcription & Inlining:** Transcribe image text, assembly instructions, hex codes, or diagram flows directly where the image appeared.
-- **Unified Granular Search Responses:** Structure query responses into ONE seamless technical document with exact opcodes, function names, and code snippets, inlining claim markers (`[[wiki/...]]` + `[V]` for KB facts vs `[AI Synthesis]` for model reasoning). NEVER output separate section headers.
-- **Mandatory Verification Loop.** Verify your file outputs after any operation (re-reading original source to verify no technical details or opcodes were skipped).
-- **Auto-Graph on compile:** Automatically run `python3 .kb/scripts/graph_generator.py` after `compile` to keep the Knowledge Graph Visualizer synchronized.
+- **Unified Granular Search Responses:** Structure query responses into ONE seamless technical document with exact opcodes, function names, and code snippets, inlining claim markers (`[[wiki/...]]` + `[V]` for KB facts vs `[AI Synthesis]` for model reasoning). Do not output separate high-level summary sections.
+- **Checklist Verification Loop:** Step 1 records a pre-flight checklist of all headings and code blocks. Verify every item is accounted for in output before finalizing.
+- **Auto-Index on compile:** Automatically run `python3 .kb/scripts/index_builder.py` after `compile` to update secondary indexes and keep the Knowledge Graph synchronized.
 
 ---
 
 ## Quick Commands
 
-| Command | Action | Module |
+| Command | Action | Module / Script |
 |---|---|---|
 | `ingest <url>` | Crawl URL → raw markdown + images inbox dump | `.kb/ingest-protocol.md` |
-| `compile <file>` | Process unprocessed `raw/` files | `.kb/write-pipeline.md` |
+| `compile <file>` | Process unprocessed `raw/` files into wiki articles | `.kb/write-pipeline.md` |
 | `search <query>` | Query KB → Unified Answer (KB Facts + AI Synthesis inline) | `.kb/read-protocol.md` |
-| `graph` | Build & open interactive Knowledge Graph visualizer | `.kb/scripts/graph_generator.py --open` |
-| `health-check` | Scan KB for dead links, orphans, stale stubs | `.kb/maintenance.md` |
+| `reindex` | Rebuild secondary indexes, validate links, and sync graph | `python3 .kb/scripts/index_builder.py` |
+| `graph` | Build & open interactive Knowledge Graph visualizer | `python3 .kb/scripts/graph_generator.py --open` |
+| `health-check` | Scan KB for dead links, orphans, stale stubs | `python3 .kb/scripts/index_builder.py --check` |
 | `gap report` | Report dead links, stale stubs, underdeveloped topics | `.kb/maintenance.md` |
 | `contradictions` | List all articles carrying `[X]` conflict markers | `.kb/maintenance.md` |

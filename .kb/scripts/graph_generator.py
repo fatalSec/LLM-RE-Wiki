@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 Knowledge Base Graph Generator & Visualizer Launcher
 
@@ -81,15 +82,24 @@ def parse_topic(file_path: Path, wiki_dir: Path) -> str:
     return "general"
 
 
-def extract_links(content: str) -> list:
+def extract_links(content: str, source_path: Path | None = None, wiki_dir: Path | None = None) -> list:
     """Extracts obsidian [[wiki/...]] links and markdown file links."""
     links = []
     
-    # 1. Obsidian links: [[wiki/path/file|alias]] or [[wiki/path/file]]
-    obsidian_matches = re.findall(r"\[\[([^\]\|]+)(?:\|[^\]]+)?\]\]", content)
+    # 1. Obsidian links: [[wiki/path/file#anchor|alias]] or [[relative_file|alias]]
+    obsidian_matches = re.findall(r"\[\[([^\]\|#]+)(?:#[^\]\|]+)?(?:\|[^\]]+)?\]\]", content)
     for target in obsidian_matches:
         target = target.strip()
-        if not target.startswith("wiki/"):
+        if not target.startswith("wiki/") and source_path and wiki_dir:
+            try:
+                rel_dir = source_path.parent.relative_to(wiki_dir)
+                if str(rel_dir) != ".":
+                    target = f"wiki/{rel_dir}/{target}"
+                else:
+                    target = f"wiki/{target}"
+            except Exception:
+                target = f"wiki/{target}"
+        elif not target.startswith("wiki/"):
             target = f"wiki/{target}"
         links.append(target)
 
@@ -134,6 +144,10 @@ def build_graph(wiki_dir: Path):
 
     # Pass 1: Discover all Nodes
     for file_path in md_files:
+        # Skip secondary cross-topic tables and logs from graph nodes
+        if file_path.name in ("_tools-index.md", "_snippets-index.md", "_patterns-index.md", "_ttp-index.md", "log.md"):
+            continue
+
         rel_path = file_path.relative_to(wiki_dir)
         node_id = f"wiki/{rel_path.as_posix()[:-3]}" if str(rel_path).endswith(".md") else f"wiki/{rel_path.as_posix()}"
         node_id_norm = normalize_node_id(node_id)
@@ -156,7 +170,7 @@ def build_graph(wiki_dir: Path):
             "id": node_id_norm,
             "display_id": node_id,
             "title": title,
-            "path": str(file_path.resolve()),
+            "path": f"knowledge_base/wiki/{rel_path.as_posix()}",
             "rel_path": f"knowledge_base/wiki/{rel_path.as_posix()}",
             "topic": topic,
             "color": topic_colors.get(topic, "#8b5cf6"),
@@ -169,7 +183,7 @@ def build_graph(wiki_dir: Path):
         }
 
         # Extract links
-        extracted = extract_links(content)
+        extracted = extract_links(content, file_path, wiki_dir)
         for target in extracted:
             target_norm = normalize_node_id(target)
             raw_edges.append((node_id_norm, target_norm))
