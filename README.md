@@ -1,179 +1,144 @@
-# LLM-RE-KnowledgeBase-Agent
+# LLM-RE-KnowledgeBase-Agent (v1 Video Edition)
 
-> ℹ️ **YouTube Showcase Snapshot**  
-> This branch holds the exact codebase featured in the [YouTube Walkthrough (youtu.be/8JgcliENtPQ)](https://youtu.be/8JgcliENtPQ).  
-> For the latest optimized version, check the [`main` branch](https://github.com/fatalSec/LLM-RE-WIKI).
+[![YouTube Walkthrough](https://img.shields.io/badge/YouTube-Watch%20Tutorial-red?logo=youtube&logoColor=white)](https://youtu.be/8JgcliENtPQ)
+[![Python](https://img.shields.io/badge/Python-3.10%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
+[![Markdown Vault](https://img.shields.io/badge/Storage-Plain%20Markdown-black?logo=markdown&logoColor=white)](knowledge_base/wiki/)
+[![Interactive Graph](https://img.shields.io/badge/Visualizer-Force--Directed%20Graph-purple)](knowledge_base/graph/index.html)
+[![Branch](https://img.shields.io/badge/Branch-v1--video-orange)](https://github.com/fatalSec/LLM-RE-WIKI/tree/v1-video)
 
-> A file-based, LLM-driven **Reverse Engineering Knowledge Base custodian**. It ingests blogs, papers, pentest findings, and malware write-ups, compiles them into a rigorously structured, cross-linked markdown wiki with anti-hallucination provenance markers, and renders the whole thing as an interactive knowledge graph.
-
-The agent is not a chatbot wrapper — it is a set of instruction files (`AGENTS.md` + `.kb/`) that turn any capable coding/agent LLM (Claude Code, Cursor, etc.) into a disciplined librarian for security-research knowledge. All state lives in plain markdown on disk, so the KB is portable, diff-able, and readable by other agents via direct file traversal.
-
----
-
-## Why this exists
-
-RE and security notes rot fast: opcodes get paraphrased away, tool versions go unpinned, blog claims get promoted to "fact," and a year later you can't tell what you *verified* from what an LLM *guessed*. This agent enforces the opposite discipline:
-
-- **Zero-loss compilation** — offsets, hex, registers, JNI signatures, and bypass scripts are preserved verbatim, never summarized.
-- **Provenance on every claim** — inline markers separate verified facts (`[V]`) from inference (`[I]`), unverified secondary sources (`[U]`), version-specific behavior (`[VS]`), contradictions (`[X]`), and pure model reasoning (`[AI Synthesis]`).
-- **Navigable by machines** — every article carries YAML frontmatter and lives in a hub-and-chunk graph so *other* LLMs can traverse it without confabulating.
+> 📺 **YouTube Tutorial Snapshot**  
+> This branch preserves the exact codebase featured in the [YouTube Walkthrough (youtu.be/8JgcliENtPQ)](https://youtu.be/8JgcliENtPQ).  
+> You can follow along with the video step-by-step using the instructions below.  
+> 
+> 🚀 *Looking for the latest optimized version?* Check the [**`main` branch**](https://github.com/fatalSec/LLM-RE-WIKI), featuring fast-path 2-turn retrieval, automated indexing, and token-efficiency enhancements.
 
 ---
 
-## Architecture
+## Overview
+
+**LLM-RE-KnowledgeBase-Agent** is a file-based, LLM-driven Reverse Engineering Knowledge Base custodian. It ingests security blogs, academic papers, pentest findings, and malware writeups, compiles them into a structured, cross-linked Markdown wiki with anti-hallucination provenance markers, and visualizes the corpus as an interactive knowledge graph.
+
+The system is not a chatbot wrapper—it is a set of modular agent instruction files (`AGENTS.md` + `.kb/`) that turn any capable coding agent ([Claude Code](https://claude.ai/), [Cursor](https://cursor.com/), [Windsurf](https://codeium.com/windsurf), or [Antigravity](https://github.com/google)) into a disciplined security research librarian.
 
 <p align="center">
-  <img src="docs/architecture.png" alt="3-tier AI agent system: user input commands (ingest / compile / search) → AI agent orchestrator (rules + dispatcher) → markdown knowledge vault (raw feeds → compiled graph nodes)" width="620">
+  <img src="docs/architecture.png" alt="3-tier AI agent system: user commands -> AI agent orchestrator -> markdown knowledge vault" width="700">
 </p>
 
-The system is three tiers: **user commands** (`ingest` / `compile` / `search`) drive an **AI agent orchestrator** (behavioral rules + a mode dispatcher), which reads from and writes to the **markdown knowledge vault** — turning raw inbox feeds into a compiled, cross-linked graph of articles.
+---
 
-```
-./ (project root)
-├── AGENTS.md                  ← Master orchestrator / mode dispatcher (read every session)
-├── .kb/                       ← The agent's "firmware": rules, protocols, schemas, scripts
-│   ├── core-rules.md          ← Anti-hallucination system + behavioral rules (always loaded)
-│   ├── read-protocol.md       ← Query mode: how to traverse the KB and answer
-│   ├── write-pipeline.md      ← Compile mode: raw file → structured wiki articles
-│   ├── ingest-protocol.md     ← Crawl mode: URL → raw markdown + local images
-│   ├── index-formats.md       ← Templates for master/topic/cross-topic indexes
-│   ├── maintenance.md         ← health-check / gap report / contradictions
-│   ├── schemas/               ← Per-content-type article schemas
-│   │   ├── _common-metadata.md
-│   │   ├── pentest-finding.md
-│   │   ├── malware-analysis.md
-│   │   ├── research-paper.md
-│   │   ├── api-reference.md
-│   │   ├── analysis-notes.md
-│   │   └── blog-writeup.md
-│   └── scripts/
-│       ├── crawl.py           ← Portable web crawler (readability + image downloader)
-│       ├── graph_generator.py ← Builds graph_data.js from wiki links
-│       └── requirements.txt
-└── knowledge_base/            ← The isolated KB environment (all persistent state)
-    ├── raw/                   ← Inbox: unprocessed feeds/reports + downloaded assets
-    ├── wiki/                  ← The compiled markdown KB (Obsidian-style [[links]])
-    └── graph/                 ← Interactive knowledge-graph visualizer (index.html)
-```
+## Why This Exists
 
-The LLM reads `AGENTS.md` first, matches the user's request to a **mode**, and loads only the instruction files that mode needs.
+Reverse engineering and offensive security notes rot quickly:
+- **Paraphrasing loss:** LLMs summarize away exact opcodes, registers, and memory offsets.
+- **Unverified claims:** Blog assertions often get promoted to "fact," with no record of what was verified vs. inferred.
+- **Context fragmentation:** Standard vector search chunks break continuous assembly routines and unpacker stages.
+
+This agent enforces:
+1. **Zero-Loss Compilation:** Offsets, hex dumps, registers, JNI signatures, and bypass scripts are preserved verbatim.
+2. **Provenance on Every Claim:** Inline markers separate verified source facts (`[V]`) from inferences (`[I]`), unverified community notes (`[U]`), version quirks (`[VS]`), and model reasoning (`[AI Synthesis]`).
+3. **Machine-Navigable Structure:** Every article carries YAML frontmatter and hub-and-spoke links (`[[wiki/...]]`) so downstream agents can traverse technical dependencies deterministically.
 
 ---
 
-## Core workflow
+## Video Tutorial Walkthrough (Follow Along)
 
-```
-ingest <url>   →   compile <file>   →   search <query>
-   crawl            structure             answer
-   ─────            ─────────             ──────
- raw/feeds/*     wiki/**/*.md +        unified technical
- raw/assets/*    updated indexes +     response with inline
-                 regenerated graph     provenance markers
-```
+To replicate the exact workflow shown in the [YouTube video](https://youtu.be/8JgcliENtPQ):
 
-### 1. Ingest — crawl a URL into the inbox
-`crawl.py` fetches a page with a realistic User-Agent, extracts the main article via `readability`, recovers `<figure>`/SVG diagrams that readability strips, downloads every image locally (converting `.webp` → `.png`), and writes clean markdown to `knowledge_base/raw/feeds/<slug>.md`.
-
-### 2. Compile — turn raw notes into a structured wiki
-The agent classifies the content type (pentest finding, malware analysis, research paper, API doc, analysis notes, or blog), loads the matching schema, and splits deep dives into a **hub + semantic chunks** (one chunk per *technical mechanism*, never per product name). It writes YAML frontmatter, cross-links every article, updates topic and cross-topic indexes, verifies all `[[wiki links]]` resolve, and logs the operation.
-
-### 3. Search — query the KB
-The agent routes through `_master-index.md` → topic `_index.md` → article, then composes **one seamless, highly granular technical document** — exact function names, opcodes, structs, and code — with every sentence tagged by provenance. If something isn't in the KB, it says so explicitly rather than blending in training-data priors.
-
-### 4. Visualize — interactive knowledge graph
-`graph_generator.py` parses every wiki file, extracts `[[wiki/...]]` links, builds a node/edge graph colored by topic, and writes `knowledge_base/graph/graph_data.js`. Open `knowledge_base/graph/index.html` for a force-directed, searchable, clickable map of the KB.
-
----
-
-## Command reference
-
-Drive the agent with natural language or these shorthand commands (see `AGENTS.md`):
-
-| Command | Action |
-|---|---|
-| `ingest <url>` | Crawl a URL → raw markdown + local images inbox |
-| `compile <file>` | Process an unprocessed `raw/` file into structured wiki articles |
-| `search <query>` | Query the KB → unified answer (KB facts + AI synthesis, inline) |
-| `graph` | Build & open the interactive knowledge-graph visualizer |
-| `health-check` | Scan for dead links, orphans, missing YAML, stale stubs |
-| `gap report` | Report dead links, stale stubs, and underdeveloped topics |
-| `contradictions` | List all articles carrying `[X]` conflict markers |
-
----
-
-## Provenance marker system
-
-Every factual claim in a wiki article carries a marker so downstream LLMs never confuse sources:
-
-| Marker | Meaning |
-|---|---|
-| `[V]` | **Verified** — directly confirmed from the cited primary source |
-| `[I]` | **Inferred** — logical conclusion from verified facts |
-| `[U]` | **Unverified** — from a blog/forum/secondary source |
-| `[VS: Frida 16.x]` | **Version-specific** — only applies to the stated version/environment |
-| `[X: see <article>]` | **Contradicted** — conflicts with another article |
-| `[AI Synthesis]` | **Model intelligence** — general pre-trained reasoning or code patterns |
-
-Every article must also declare `## What This Article Does NOT Cover` and `## Open Questions / Unverified Claims` to keep scope boundaries explicit.
-
----
-
-## Getting started
-
-### Prerequisites
-- Python 3.10+ (the scripts use `X | None` type-union syntax)
-- An agent/LLM host that reads project instruction files (e.g. Claude Code)
-
-### 1. Clone
+### 1. Clone this Branch
 ```bash
-git clone https://github.com/fatalSec/LLM-RE-KnowledgeBase-Agent.git
-cd LLM-RE-KnowledgeBase-Agent
+git clone -b v1-video https://github.com/fatalSec/LLM-RE-WIKI.git
+cd LLM-RE-WIKI
 ```
 
-### 2. Set up the Python environment (for crawling & graphing)
+### 2. Set Up the Python Environment
 ```bash
 python3 -m venv .kb/scripts/.venv
 .kb/scripts/.venv/bin/pip install -r .kb/scripts/requirements.txt
 ```
 
-### 3. Crawl a page into the inbox
+### 3. Ingest a Writeup into the Inbox
 ```bash
 .kb/scripts/.venv/bin/python .kb/scripts/crawl.py "https://example.com/some-re-writeup"
 ```
+The crawler downloads the article text to `knowledge_base/raw/feeds/<slug>.md` and saves all diagrams/images locally in `knowledge_base/raw/assets/<slug>/`.
 
-### 4. Point your agent at the repo
-Open the project in your agent host and ask it to, for example, `compile <slug>.md`, `search "DexProtector anti-frida"`, or run a `health-check`. The agent reads `AGENTS.md` and takes it from there.
+### 4. Compile with Your AI Agent
+Open this repository in your AI coding assistant (Cursor, Claude Code, or Antigravity) and instruct it:
+```text
+compile <slug>.md
+```
+The agent reads `AGENTS.md`, matches the schema, extracts technical invariants, generates hub-and-chunk wiki articles, and refreshes the indexes.
 
-### 5. Explore the graph
+### 5. Query the Knowledge Base
+```text
+search "How does r2-pay detect TracerPid?"
+```
+The agent retrieves the specific chunk and outputs a unified technical brief with exact opcodes and inline provenance markers.
+
+### 6. Explore the Knowledge Graph
 ```bash
 .kb/scripts/.venv/bin/python .kb/scripts/graph_generator.py --open
+```
+Opens `knowledge_base/graph/index.html` in your browser showing an interactive, force-directed graph of your compiled research notes.
+
+---
+
+## System Architecture
+
+The codebase is organized into three distinct tiers:
+
+```
+./ (project root)
+├── AGENTS.md                  ← Master Dispatcher (read by the AI agent on every session)
+├── .kb/                       ← Agent instructions, schemas, and scripts
+│   ├── core-rules.md          ← Anti-hallucination baseline & behavioral rules
+│   ├── read-protocol.md       ← Query mode: index-to-article traversal
+│   ├── write-pipeline.md      ← Compile mode: raw file -> structured wiki chunks
+│   ├── ingest-protocol.md     ← URL ingestion protocol (crawl.py instructions)
+│   ├── index-formats.md       ← Master, topic, and cross-topic index schemas
+│   ├── maintenance.md         ← Health check, gap analysis, and contradictions
+│   ├── schemas/               ← Content-type templates (malware, pentest, API, blog, etc.)
+│   └── scripts/               ← Python tooling
+│       ├── crawl.py           ← Web crawler (readability + image downloader)
+│       ├── graph_generator.py ← Builds graph_data.js for the visualizer
+│       └── requirements.txt
+└── knowledge_base/            ← Persistent Knowledge Vault
+    ├── raw/                   ← Staging inbox (unprocessed feeds & downloaded images)
+    ├── wiki/                  ← Compiled markdown articles (Obsidian-style [[links]])
+    └── graph/                 ← Force-directed visualizer (index.html)
 ```
 
 ---
 
-## Scripts
+## Command Reference
 
-| Script | Purpose | Key dependencies |
+| Command | Action | Protocol |
 |---|---|---|
-| `.kb/scripts/crawl.py` | Fetch a URL, extract the main article, download images locally, emit raw markdown. Handles data-URI images, SVG/figure recovery, and `.webp`→`.png` conversion. | `requests`, `beautifulsoup4`, `lxml`, `readability-lxml`, `markdownify`, `Pillow` |
-| `.kb/scripts/graph_generator.py` | Parse the wiki, extract Obsidian links, build the node/edge graph, write `graph_data.js`, optionally open the visualizer. | `PyYAML` (optional; falls back to regex frontmatter parsing) |
-
-> **Note:** `crawl.py` prefers the native macOS `sips` tool for `.webp` conversion and only falls back to `Pillow` when `sips` is unavailable. On non-macOS systems, `Pillow` handles the conversion.
-
-The knowledge-graph visualizer (`knowledge_base/graph/index.html`) loads `force-graph` and `marked` from CDNs and expects internet access when opened in a browser.
+| `ingest <url>` | Crawl URL -> raw markdown + local images inbox | `.kb/ingest-protocol.md` |
+| `compile <file>` | Compile raw notes into structured wiki articles | `.kb/write-pipeline.md` |
+| `search <query>` | Query the KB -> unified answer with inline provenance | `.kb/read-protocol.md` |
+| `graph` | Build and open the interactive knowledge-graph visualizer | `.kb/scripts/graph_generator.py --open` |
+| `health-check` | Scan for dead links, orphan articles, and stale stubs | `.kb/maintenance.md` |
+| `gap report` | Report missing links and underdeveloped topics | `.kb/maintenance.md` |
+| `contradictions` | List all articles carrying `[X]` conflict markers | `.kb/maintenance.md` |
 
 ---
 
-## Design principles
+## Provenance Marker System
 
-- **Files, not a database.** The entire KB is markdown + YAML on disk — portable, versionable, and readable by any agent or human.
-- **Mechanisms are the unit of knowledge.** Articles are split by technical mechanism, not by product or target name.
-- **No orphans.** Every article is indexed in its topic and linked from at least one other article.
-- **Version-pin everything.** Tool and SDK versions are always explicit (`Frida 16.x` vs `15.x`, `Android 13` vs `14`).
-- **Verify, then trust.** A mandatory verification loop re-checks outputs against source so no opcode or detail is silently dropped.
+Every factual claim in a wiki article carries an inline tag to prevent model confabulation:
+
+| Marker | Meaning |
+|---|---|
+| `[V]` | **Verified** — directly confirmed from the cited primary source |
+| `[I]` | **Inferred** — logical conclusion from verified facts |
+| `[U]` | **Unverified** — from a blog, forum, or secondary source |
+| `[VS: Frida 16.x]` | **Version-Specific** — applies strictly to the stated version |
+| `[X: see <article>]` | **Contradicted** — conflicts with another documented source |
+| `[AI Synthesis]` | **Model Intelligence** — general pre-trained reasoning or proposed code |
 
 ---
 
 ## License
 
-No license file is currently included. Add one before publishing if you intend to permit reuse.
+This project is licensed under the Apache 2.0 License.
