@@ -7,7 +7,7 @@
 [![Version](https://img.shields.io/badge/Release-v2.0%20Optimized-success)](#whats-new-in-v2)
 
 > 📺 **Looking for the YouTube Video Version?**  
-> The exact codebase featured in the [YouTube Tutorial (youtu.be/8JgcliENtPQ)] is preserved on the [`v1-video`](https://github.com/fatalSec/LLM-RE-WIKI/tree/v1-video) branch.  
+> The exact codebase featured in the [YouTube Tutorial](https://youtu.be/8JgcliENtPQ) is preserved on the [`v1-video` branch](https://github.com/fatalSec/LLM-RE-WIKI/tree/v1-video).  
 > You are currently on **`main` (v2)**, engineered for enterprise-grade token efficiency, fast-path 2-turn retrieval, and automated deterministic indexing.
 
 ---
