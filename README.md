@@ -1,5 +1,9 @@
 # LLM-RE-KnowledgeBase-Agent
 
+> ℹ️ **YouTube Showcase Snapshot**  
+> This branch holds the exact codebase featured in the [YouTube Walkthrough (youtu.be/8JgcliENtPQ)](https://youtu.be/8JgcliENtPQ).  
+> For the latest optimized version, check the [`main` branch](https://github.com/fatalSec/LLM-RE-WIKI).
+
 > A file-based, LLM-driven **Reverse Engineering Knowledge Base custodian**. It ingests blogs, papers, pentest findings, and malware write-ups, compiles them into a rigorously structured, cross-linked markdown wiki with anti-hallucination provenance markers, and renders the whole thing as an interactive knowledge graph.
 
 The agent is not a chatbot wrapper — it is a set of instruction files (`AGENTS.md` + `.kb/`) that turn any capable coding/agent LLM (Claude Code, Cursor, etc.) into a disciplined librarian for security-research knowledge. All state lives in plain markdown on disk, so the KB is portable, diff-able, and readable by other agents via direct file traversal.
