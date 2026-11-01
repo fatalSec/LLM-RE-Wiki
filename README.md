@@ -7,10 +7,10 @@
 [![Branch](https://img.shields.io/badge/Branch-v1--video-orange)](https://github.com/fatalSec/LLM-RE-WIKI/tree/v1-video)
 
 > 📺 **YouTube Tutorial Snapshot**  
-> This branch preserves the exact codebase featured in the [YouTube Walkthrough (youtu.be/8JgcliENtPQ)].  
+> This branch preserves the exact codebase featured in the [YouTube Walkthrough](https://youtu.be/8JgcliENtPQ).  
 > You can follow along with the video step-by-step using the instructions below.  
 > 
-> 🚀 *Looking for the latest optimized version?* Check the [**`main`**](https://github.com/fatalSec/LLM-RE-WIKI) branch, featuring fast-path 2-turn retrieval, automated indexing, and token-efficiency enhancements.
+> 🚀 *Looking for the latest optimized version?* Check the [**`main` branch**](https://github.com/fatalSec/LLM-RE-WIKI), featuring fast-path 2-turn retrieval, automated indexing, and token-efficiency enhancements.
 
 ---
 
