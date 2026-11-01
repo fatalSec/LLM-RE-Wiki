@@ -1,6 +1,16 @@
-requests>=2.31.0
-beautifulsoup4>=4.12.0
-markdownify>=0.14.1
-readability-lxml>=0.8.1
-lxml>=5.0.0
-Pillow>=10.0.0
+# Python dependencies for .kb/scripts/
+#
+# Install:
+#   python3 -m venv .kb/scripts/.venv
+#   .kb/scripts/.venv/bin/pip install -r .kb/scripts/requirements.txt
+
+# --- crawl.py ---
+requests>=2.31.0            # page + image fetching
+beautifulsoup4>=4.12.0      # HTML parsing / figure recovery
+lxml>=5.0.0                 # parser backend for BeautifulSoup + readability
+readability-lxml>=0.8.1     # main-article extraction (strips nav/ads/footers)
+markdownify>=0.14.1         # HTML -> Markdown conversion
+Pillow>=10.0.0              # .webp -> .png fallback (used when macOS `sips` is unavailable)
+
+# --- graph_generator.py ---
+PyYAML>=6.0                 # YAML frontmatter parsing (optional: falls back to regex)
