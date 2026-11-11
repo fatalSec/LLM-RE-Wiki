@@ -139,6 +139,15 @@ Every factual claim in a wiki article carries an inline tag to prevent model con
 
 ---
 
+## Scripts & Tooling
+
+| Script | Purpose | Dependencies |
+|---|---|---|
+| `.kb/scripts/crawl.py` | Web scraper with readability extraction, figure recovery, WebP-to-PNG conversion, and asset management. | `requests`, `beautifulsoup4`, `lxml`, `readability-lxml`, `markdownify`, `Pillow` |
+| `.kb/scripts/graph_generator.py` | Parses Obsidian links (`[[wiki/...]]`), computes node weights, builds `graph_data.js`, and serves the visualizer. | Standard Library (uses `PyYAML` if present) |
+
+---
+
 ## License
 
 This project is licensed under the Apache 2.0 License.
