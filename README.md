@@ -184,30 +184,6 @@ To eliminate hallucination and maintain clear source attribution, every factual 
 | `[X: see <ref>]` | **Contradicted** | Conflicting findings between multiple sources; requires investigation |
 | `[AI Synthesis]` | **Model Intelligence** | Pre-trained model reasoning, generic assembly patterns, or proposed bypass scripts |
 
-### Granular Output Example
-When queried, the agent outputs a single unified technical document:
-
-```markdown
-### 1. Implicit Linker-State Anti-Frida (`rtld_db_dlactivity`)
-DexProtector binds stage 2 (`libdp.so`) key derivation to the runtime execution bytes of `rtld_db_dlactivity()`. [[wiki/protectors/dexprotector]] [V]
-
-When Frida attaches, it injects an ARM64 inline trampoline: [AI Synthesis]
-```assembly
-; [AI Synthesis] Frida Inline Hook Trampoline
-ldr x16, #0x8
-br  x16
-.quad <frida_handler_address>
-```
-Because key derivation reads bytes directly from `rtld_db_dlactivity()`, Frida's trampoline corrupts the decryption key, causing `libdp.so` payload decryption to fault. [[wiki/protectors/dexprotector]] [V]
-
-To neutralize this, restore the original `ret` opcode (`0xd65f03c0`) before key derivation executes: [AI Synthesis]
-```javascript
-// [AI Synthesis] Prologue Byte Restoration
-Memory.protect(Module.getExportByName(null, 'rtld_db_dlactivity'), 4, 'rwx');
-Module.getExportByName(null, 'rtld_db_dlactivity').writeByteArray([0xc0, 0x03, 0x5f, 0xd6]);
-```
-```
-
 ---
 
 ## Scripts & Tooling
