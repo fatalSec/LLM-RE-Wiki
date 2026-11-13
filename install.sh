@@ -68,8 +68,8 @@ EOF
 show_help() {
     echo "LLM-RE-WIKI One-Line Installer"
     echo ""
-    echo "Usage: ./scripts/install.sh [options]"
-    echo "   or: curl -fsSL https://raw.githubusercontent.com/fatalSec/LLM-RE-WIKI/main/scripts/install.sh | bash -s -- [options]"
+    echo "Usage: ./install.sh [options]"
+    echo "   or: curl -fsSL https://raw.githubusercontent.com/fatalSec/LLM-RE-WIKI/main/install.sh | bash -s -- [options]"
     echo ""
     echo "Options:"
     echo "  --dir <path>       Install destination (default: ~/.llm-re-wiki or current repo)"
@@ -317,7 +317,6 @@ if [ "$ARG_NO_VENV" -eq 0 ]; then
 fi
 
 # Step 8: Ensure scripts are executable
-chmod +x "$TARGET_DIR/scripts/"*.sh 2>/dev/null || true
 chmod +x "$TARGET_DIR/"*.sh 2>/dev/null || true
 
 # Step 9: Verify Knowledge Base Integrity
@@ -356,6 +355,6 @@ esac
 
 echo ""
 echo "Idempotent Lifecycle Scripts:"
-echo "  • Update:    $TARGET_DIR/scripts/update.sh"
-echo "  • Uninstall: $TARGET_DIR/scripts/uninstall.sh"
+echo "  • Update:    $TARGET_DIR/update.sh"
+echo "  • Uninstall: $TARGET_DIR/uninstall.sh"
 echo ""
