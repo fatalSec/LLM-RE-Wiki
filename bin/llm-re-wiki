@@ -253,137 +253,19 @@ cmd_ingest() {
 }
 
 cmd_update() {
-    printf "${BOLD}${BLUE}=== LLM-RE-WIKI Safe Update Pipeline ===${RESET}\n\n"
-    if [ -z "$VAULT_DIR" ] || [ ! -d "$VAULT_DIR/.git" ]; then
-        printf "${RED}Error: Vault directory %s is not a valid git repository.${RESET}\n" "$VAULT_DIR"
+    if [ -z "$VAULT_DIR" ] || [ ! -f "$VAULT_DIR/update.sh" ]; then
+        printf "%bError: update.sh not found in vault directory (%s).%b\n" "$RED" "$VAULT_DIR" "$RESET" >&2
         exit 1
     fi
-
-    cd "$VAULT_DIR"
-    local current_branch
-    current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
-
-    printf "[*] Active Vault: %s\n" "$VAULT_DIR"
-    printf "[*] Current Branch: %s\n" "$current_branch"
-
-    # Step 1: Check for modified tracked files
-    local has_unstaged=0
-    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
-        has_unstaged=1
-    fi
-
-    if [ "$has_unstaged" -eq 1 ]; then
-        printf "${YELLOW}[!] Working directory contains modifications. Creating safety stash...${RESET}\n"
-        git stash push -m "llm-re-wiki-auto-update-$(date +%Y%m%d_%H%M%S)"
-    fi
-
-    # Step 2: Pull latest updates from remote
-    printf "[*] Fetching updates from origin/%s...\n" "$current_branch"
-    if git pull --rebase origin "$current_branch"; then
-        printf "${GREEN}[✓] Successfully updated repository to latest upstream.${RESET}\n"
-    else
-        printf "${RED}[X] Git pull encountered conflicts. Restoring previous state...${RESET}\n"
-        [ "$has_unstaged" -eq 1 ] && git stash pop || true
-        exit 1
-    fi
-
-    # Step 3: Pop stash if we stashed
-    if [ "$has_unstaged" -eq 1 ]; then
-        printf "[*] Restoring local modifications from safety stash...\n"
-        git stash pop || printf "${YELLOW}[!] Note: Conflict during stash pop; inspect with 'git status'.${RESET}\n"
-    fi
-
-    # Step 4: Update python venv if present
-    if [ -d "$VAULT_DIR/.kb/scripts/.venv" ]; then
-        printf "[*] Updating Python virtual environment dependencies...\n"
-        "$VAULT_DIR/.kb/scripts/.venv/bin/pip" install -q --upgrade pip 2>/dev/null || true
-        "$VAULT_DIR/.kb/scripts/.venv/bin/pip" install -q -r "$VAULT_DIR/.kb/scripts/requirements.txt"
-        printf "${GREEN}[✓] Dependencies updated.${RESET}\n"
-    fi
-
-    # Step 5: Rebuild secondary indexes and run health check
-    printf "[*] Rebuilding secondary indexes and verifying KB integrity...\n"
-    local py
-    py="$(get_python)"
-    "$py" "$VAULT_DIR/.kb/scripts/index_builder.py"
-    "$py" "$VAULT_DIR/.kb/scripts/index_builder.py" --check
-
-    printf "\n${GREEN}${BOLD}[✓] LLM-RE-WIKI update completed successfully!${RESET}\n"
-    printf "Your research notes in ${CYAN}%s/knowledge_base/${RESET} are safe and preserved.\n" "$VAULT_DIR"
+    exec "$VAULT_DIR/update.sh" "$@"
 }
 
 cmd_uninstall() {
-    printf "${BOLD}${RED}=== LLM-RE-WIKI Safe Uninstaller ===${RESET}\n\n"
-
-    echo "This will guide you through removing or archiving LLM-RE-WIKI."
-    echo ""
-    echo "Options:"
-    echo "  1) Keep Knowledge Base notes (${VAULT_DIR}/knowledge_base/)"
-    echo "     Only remove the global CLI wrapper (~/.local/bin/llm-re-wiki) and configs."
-    echo "  2) Create a full backup archive, then remove the vault and CLI wrapper."
-    echo "  3) Complete wipe (irreversibly deletes vault directory and CLI wrapper)."
-    echo "  4) Cancel."
-    echo ""
-
-    local choice=""
-    if [ -t 0 ]; then
-        read -r -p "Enter choice [1-4, default: 4]: " choice
-    elif [ -e /dev/tty ]; then
-        read -r -p "Enter choice [1-4, default: 4]: " choice < /dev/tty
-    else
-        echo "Non-interactive uninstall requires manual execution. Aborted."
+    if [ -z "$VAULT_DIR" ] || [ ! -f "$VAULT_DIR/uninstall.sh" ]; then
+        printf "%bError: uninstall.sh not found in vault directory (%s).%b\n" "$RED" "$VAULT_DIR" "$RESET" >&2
         exit 1
     fi
-
-    choice="${choice:-4}"
-
-    case "$choice" in
-        1)
-            printf "\n[*] Removing global CLI wrapper and configuration...\n"
-            rm -f "$HOME/.local/bin/llm-re-wiki"
-            rm -rf "$HOME/.config/llm-re-wiki"
-            printf "${GREEN}[✓] CLI removed. Your knowledge base remains intact at: %s${RESET}\n" "$VAULT_DIR"
-            ;;
-        2)
-            local timestamp
-            timestamp="$(date +%Y%m%d_%H%M%S)"
-            local backup_file="$HOME/llm-re-wiki-backup-${timestamp}.tar.gz"
-            printf "\n[*] Creating archive at: %s...\n" "$backup_file"
-            tar -czf "$backup_file" -C "$(dirname "$VAULT_DIR")" "$(basename "$VAULT_DIR")"
-            printf "${GREEN}[✓] Backup archive created: %s${RESET}\n" "$backup_file"
-
-            printf "[*] Removing vault directory: %s...\n" "$VAULT_DIR"
-            rm -rf "$VAULT_DIR"
-            rm -f "$HOME/.local/bin/llm-re-wiki"
-            rm -rf "$HOME/.config/llm-re-wiki"
-            printf "${GREEN}[✓] LLM-RE-WIKI uninstalled successfully. Your archive is stored at: %s${RESET}\n" "$backup_file"
-            ;;
-        3)
-            printf "\n${RED}${BOLD}WARNING: This will permanently delete %s and all research notes!${RESET}\n" "$VAULT_DIR"
-            printf "Type ${BOLD}DELETE${RESET} to confirm: "
-            local confirm=""
-            if [ -t 0 ]; then
-                read -r confirm
-            elif [ -e /dev/tty ]; then
-                read -r confirm < /dev/tty
-            fi
-
-            if [ "$confirm" = "DELETE" ]; then
-                printf "[*] Deleting %s...\n" "$VAULT_DIR"
-                rm -rf "$VAULT_DIR"
-                rm -f "$HOME/.local/bin/llm-re-wiki"
-                rm -rf "$HOME/.config/llm-re-wiki"
-                printf "${GREEN}[✓] LLM-RE-WIKI completely removed.${RESET}\n"
-            else
-                printf "${YELLOW}Confirmation failed. Uninstall cancelled.${RESET}\n"
-                exit 0
-            fi
-            ;;
-        *)
-            echo "Uninstallation cancelled."
-            exit 0
-            ;;
-    esac
+    exec "$VAULT_DIR/uninstall.sh" "$@"
 }
 
 # --- Main Dispatcher ---

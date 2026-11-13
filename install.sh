@@ -352,6 +352,9 @@ CONF_EOF
     esac
 fi
 
+# Ensure lifecycle scripts are executable
+chmod +x "$TARGET_DIR/install.sh" "$TARGET_DIR/update.sh" "$TARGET_DIR/uninstall.sh" "$TARGET_DIR/bin/llm-re-wiki" 2>/dev/null || true
+
 # Step 9: Verify Knowledge Base Integrity
 printf "\n%b==> Running KB Self-Check...%b\n" "$BOLD" "$RESET"
 cd "$TARGET_DIR"
@@ -390,10 +393,8 @@ case "$SELECTED_AGENT" in
 esac
 
 echo ""
-echo "Essential Management Commands:"
-echo "  llm-re-wiki graph      Open interactive knowledge graph"
-echo "  llm-re-wiki health     Scan KB for broken links & orphans"
-echo "  llm-re-wiki ingest     Crawl writeups and images into inbox"
-echo "  llm-re-wiki update     Safely update schemas & tools (notes protected)"
-echo "  llm-re-wiki uninstall  Safely remove or archive vault"
+echo "Idempotent Lifecycle Scripts (Local or CLI):"
+echo "  • Update:      ./update.sh      (or: llm-re-wiki update)"
+echo "  • Uninstall:   ./uninstall.sh   (or: llm-re-wiki uninstall)"
+echo "  • Knowledge:   llm-re-wiki graph | health | reindex | ingest <url>"
 echo ""

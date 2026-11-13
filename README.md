@@ -143,17 +143,24 @@ llm-re-wiki opencode   # or: cd ~/llm-re-wiki && opencode
 llm-re-wiki pi         # or: cd ~/llm-re-wiki && pi
 ```
 
-#### Global CLI Management (`llm-re-wiki`)
+#### Idempotent Lifecycle Scripts & CLI
 
-| Command | Action |
-|---|---|
-| `llm-re-wiki run [agent]` | Launch configured AI agent inside the vault |
-| `llm-re-wiki graph` | Rebuild and open the interactive knowledge graph visualizer |
-| `llm-re-wiki health` | Scan KB for dead links, orphan articles, and integrity |
-| `llm-re-wiki reindex` | Rebuild secondary indexes (`_tools-index`, `_ttp-index`, etc.) |
-| `llm-re-wiki ingest <url>` | Crawl a writeup/blog into the raw inbox with images |
-| `llm-re-wiki update` | **Safely** update schemas, protocols & tools (strictly protects your research notes) |
-| `llm-re-wiki uninstall` | Safely remove CLI wrapper or vault with optional backup archive |
+LLM-RE-WIKI uses **declarative, idempotent shell lifecycle scripts** rather than opaque compiled binaries. You can invoke them directly in the repository or through the optional `llm-re-wiki` shell wrapper:
+
+| Task | Direct Script | CLI Wrapper | Action & Safety Guarantee |
+|---|---|---|---|
+| **Install** | `./install.sh` | — | Detects agents (Claude/OpenCode/Pi), bootstraps venv, symlinks CLI |
+| **Update** | `./update.sh` | `llm-re-wiki update` | Fast-forwards upstream (`git pull --ff-only`), syncs venv, reindexes; **strictly preserves local notes and targets** |
+| **Uninstall** | `./uninstall.sh` | `llm-re-wiki uninstall` | Offers safe backup archive (`~/llm-re-wiki-backup-*.tar.gz`) or unlinks CLI without deleting research notes |
+| **Launch Agent** | — | `llm-re-wiki [agent]` | Launches Claude Code, OpenCode, or Pi inside the vault |
+| **Graph** | — | `llm-re-wiki graph` | Rebuilds and opens interactive knowledge graph visualizer |
+| **Health** | — | `llm-re-wiki health` | Runs automated dead-link and orphan validator |
+
+> **Why Declarative Shell Scripts Over Compiled Binaries?**
+> - **Knowledge Evolves Faster Than Binaries:** The core value lives in mutable text artifacts—token-optimized schemas, protocols, and markdown notes. You never need to cut releases for new RASP bypasses or Frida scripts.
+> - **Zero Gatekeeper & Signing Friction:** No macOS Gatekeeper / notarization blocks, no platform-specific cross-compilation CI/CD, and zero execution overhead.
+> - **Clean State Preservation:** `update.sh` uses declarative `git pull --ff-only` and safety stashes, ensuring user notes in `knowledge_base/` and custom target directories are never clobbered.
+> - **Native Agent Harness Discovery:** OpenCode, Claude Code, and Pi discover agent instructions (`AGENTS.md`, `CLAUDE.md`) directly from predictable filesystem paths. Keeping files transparent on disk simplifies MCP debugging and inspection.
 
 ---
 
@@ -235,11 +242,14 @@ To eliminate hallucination and maintain clear source attribution, every factual 
 
 | Script / Tool | Purpose | Dependencies |
 |---|---|---|
-| `install.sh` | Universal one-line installer: agent detection (Claude, OpenCode, Pi), automated setup, and CLI provisioning. | Bash, `git`, `python3`, `curl` |
-| `bin/llm-re-wiki` | Global manager CLI: agent launchers, safe updates (stash/pull), safe uninstall (backup archive), and health checks. | Bash |
+| `install.sh` | Idempotent one-line installer: agent detection (Claude, OpenCode, Pi), automated setup, and CLI provisioning. | Bash, `git`, `python3`, `curl` |
+| `update.sh` | Idempotent update script: fast-forwards upstream (`git pull --ff-only`), syncs venv, and validates KB health while protecting user notes. | Bash, `git` |
+| `uninstall.sh` | Idempotent safe uninstaller: provides options to keep research notes, export a timestamped backup archive, or wipe. | Bash, `tar` |
+| `bin/llm-re-wiki` | Optional lightweight shell wrapper: launches agents, delegates to lifecycle scripts, and runs KB tools. | Bash |
 | `.kb/scripts/crawl.py` | Web scraper with readability extraction, figure recovery, WebP-to-PNG conversion, and asset management. | `requests`, `beautifulsoup4`, `lxml`, `readability-lxml`, `markdownify`, `Pillow` |
-| `.kb/scripts/index_builder.py` | Fast deterministic indexer: scans YAML frontmatter across the vault to compile `_tools-index`, `_snippets-index`, `_patterns-index`, `_ttp-index`, validates link health, and updates the graph. | Standard Library (uses `PyYAML` if present) |
+| `.kb/scripts/index_builder.py` | Fast deterministic indexer: scans YAML frontmatter across the vault to compile secondary indexes, validates link health, and updates the graph. | Standard Library (uses `PyYAML` if present) |
 | `.kb/scripts/graph_generator.py` | Parses Obsidian links (`[[wiki/...]]`), computes node weights, builds `graph_data.js`, and serves the visualizer. | Standard Library (uses `PyYAML` if present) |
+
 
 
 ---
