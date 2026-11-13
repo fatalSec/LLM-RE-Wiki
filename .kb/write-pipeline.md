@@ -28,6 +28,11 @@ Classify the raw file, then load the matching schema from `.kb/schemas/`.
 
 **ZERO-LOSS DIRECTIVE:** Never summarize. Preserve ALL offsets, hex, registers, paths, syscalls, bypass scripts, and code verbatim.
 
+**Faithfulness rules** (apply to every article):
+- **Markers:** don't write `[V]` on content from the primary source — it is the default. Never combine markers (`[V][U]`, `[V][I]`). Anything the source does not state is `[I]` (your deduction) or `[AI Synthesis]` (general knowledge), never `[V]`. Full rules: `core-rules.md` §2.1.
+- **Code:** only put code in an article if it appears in the source (or is transcribed from a source image). If the source has none — e.g. it links to a repo — write `No code in source; implementation: <repo link>`. Any code you reconstruct goes in a block whose first line is a `[AI Synthesis]` comment, and never cites the source or repo as its origin.
+- **Verbatim text:** copy unusual source text exactly (odd headings, sign-offs, typos). Don't "fix" it or guess why it looks that way; at most add a neutral note such as *"heading appears as `</last word>` in the source"*.
+
 1. **Read** entire raw file. **Extract a pre-flight checklist** of all `##` headings, technical mechanisms, and code blocks.
 2. **Images:** Process per §4. Extract text before writing.
 3. **Classify** → select schema (§1).
@@ -107,6 +112,16 @@ Chunk filenames = mechanism only. Navigation at top of each chunk:
 
 Insert as: `> **[Image extracted — CATEGORY | confidence: high/low]**` + extracted content.
 Low confidence: append `— verify against original source: <url>`.
+Only write a `DECORATIVE` line for an image that actually exists in the source.
+
+**Image links must be rewritten.** Raw files link images as `../assets/<slug>/<image>` (relative to `raw/feeds/`). That path is wrong from inside `wiki/`. Rewrite it relative to the article's own folder so it points into `knowledge_base/raw/assets/`:
+
+| Article location | Image link |
+|---|---|
+| `wiki/<topic>/<article>.md` | `../../raw/assets/<slug>/<image>` |
+| `wiki/<topic>/<subject>/<chunk>.md` (hub chunk) | `../../../raw/assets/<slug>/<image>` |
+
+`index_builder.py` reports any local image link whose file doesn't exist as an error.
 
 ---
 

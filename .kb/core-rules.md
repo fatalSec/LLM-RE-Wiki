@@ -34,12 +34,17 @@ To maximize token efficiency without losing precision, use inline markers specif
 
 | Marker | Meaning | Usage |
 |---|---|---|
-| `[V]` | Verified | Implicit for primary source claims; explicit when contrasting against [U] or [AI] |
+| `[V]` | Verified | **Implicit** for primary-source claims — don't write it. Write `[V: <source>]` only for a fact from a *secondary* entry in `sources:`, or to contrast with a nearby `[U]`/`[AI Synthesis]` claim |
 | `[I]` | Inferred | Logical conclusion from verified facts, not explicitly stated |
 | `[U]` | Unverified | From secondary sources, blogs, or forums without direct confirmation |
 | `[VS: Frida 16.x]` | Version-specific | Behavioral invariants tied to a specific tool/SDK version |
 | `[X: see <article>]` | Contradicted | Conflicting behavior across multiple sources; check both |
 | `[AI Synthesis]` | Model Intelligence | General pre-trained reasoning, code patterns, or bypass suggestions not in KB |
+
+**Marker rules:**
+- **One marker per claim.** Never combine (`[V][U]`, `[V][I]`). Pick the weakest that applies.
+- **Not in the source = not `[V]`.** Your deductions are `[I]`; general knowledge or proposed code is `[AI Synthesis]`.
+- **Reporting a claim isn't verifying it.** "The author says X" about something unverifiable (e.g. anecdotes) is `[U]`.
 
 **Example:**
 ```markdown
