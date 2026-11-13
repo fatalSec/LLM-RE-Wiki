@@ -63,6 +63,35 @@ def extract_frontmatter(text: str) -> tuple[dict, str]:
     return data, body
 
 
+REQUIRED_FIELDS = ("type", "topic", "source", "tags", "complexity", "completeness", "last_verified", "llm_summary")
+
+
+def validate_frontmatter(articles: list[dict]) -> list[str]:
+    """Returns one error per article that is missing required YAML fields.
+    Index/hub files (names starting with '_') are navigation pages and are skipped."""
+    errors = []
+    for a in articles:
+        if a["path"].name.startswith("_"):
+            continue
+        if not a["fm"]:
+            errors.append(f"{a['rel_path']} -> missing YAML frontmatter")
+            continue
+        missing = [f for f in REQUIRED_FIELDS if not a["fm"].get(f)]
+        if missing:
+            errors.append(f"{a['rel_path']} -> missing fields: {', '.join(missing)}")
+    return errors
+
+
+def split_tool_version(entry: str) -> tuple[str, str]:
+    """Splits 'IDA Pro 8.3' into ('IDA Pro', '8.3'). The version is the last word,
+    but only if it starts with a digit (or 'v' + digit); otherwise there is no version."""
+    entry = str(entry).strip()
+    parts = entry.rsplit(maxsplit=1)
+    if len(parts) == 2 and re.match(r"^v?\d", parts[1], re.IGNORECASE):
+        return parts[0], parts[1]
+    return entry, "unspecified"
+
+
 def get_wiki_files(wiki_dir: Path) -> list[Path]:
     """Returns all non-index markdown files."""
     files = []
@@ -102,11 +131,8 @@ def build_tools_index(articles: list[dict], out_path: Path):
         if isinstance(tools, str):
             tools = [tools]
         for t in tools:
-            # Match "Tool Version", e.g., "Frida 16.x" or "IDA 8.3"
-            parts = str(t).strip().split(maxsplit=1)
-            tool_name = parts[0]
-            version = parts[1] if len(parts) > 1 else "unspecified"
-            key = (tool_name, version)
+            # Match "Tool Version", e.g., "Frida 16.x" or "IDA Pro 8.3"
+            key = split_tool_version(t)
             if key not in tool_map:
                 tool_map[key] = []
             tool_map[key].append(a)
@@ -300,14 +326,25 @@ def main():
         })
 
     dead_links, orphans = validate_health(wiki_dir, articles)
+    fm_errors = validate_frontmatter(articles)
 
     print(f"[*] Scanned {len(articles)} wiki articles.")
     if dead_links:
-        print(f"[!] Warning: {len(dead_links)} dead links detected:")
+        print(f"[!] Error: {len(dead_links)} dead links detected:")
         for dl in dead_links[:10]:
             print(f"    - {dl}")
     else:
         print("[✓] Zero dead links detected.")
+
+    if fm_errors:
+        print(f"[!] Error: {len(fm_errors)} articles with invalid frontmatter "
+              f"(required: {', '.join(REQUIRED_FIELDS)}):")
+        for e in fm_errors[:10]:
+            print(f"    - {e}")
+    else:
+        print("[✓] All articles have required frontmatter.")
+
+    exit_code = 1 if (dead_links or fm_errors) else 0
 
     if orphans:
         print(f"[*] Note: {len(orphans)} orphan articles (not linked from other files yet):")
@@ -317,8 +354,8 @@ def main():
         print("[✓] Zero orphan articles.")
 
     if args.check:
-        print("[*] Check mode complete.")
-        return
+        print("[*] Check mode complete." + (" Fix the errors above." if exit_code else ""))
+        sys.exit(exit_code)
 
     if not articles:
         print("[*] No articles in wiki yet. Skipping index generation.")
@@ -339,7 +376,12 @@ def main():
         cmd = [sys.executable, str(graph_script)]
         if args.open:
             cmd.append("--open")
+        sys.stdout.flush()
         subprocess.run(cmd)
+
+    if exit_code:
+        print("[!] Indexes were written, but the KB has errors (see above). Fix them and re-run.")
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

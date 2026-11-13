@@ -1,91 +1,157 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" width="1200" height="800" font-family="'Helvetica Neue', Helvetica, Arial, sans-serif">
+  <title>LLM-RE-WIKI 3-tier architecture</title>
+  <desc>Tier 1: the user types ingest, compile, and search commands. Tier 2: the AI agent routes each command through AGENTS.md or CLAUDE.md to the matching instruction file and script. Tier 3: everything is stored as plain Markdown in knowledge_base raw, wiki, and graph folders.</desc>
   <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#0d1220"/>
-      <stop offset="1" stop-color="#141a2b"/>
-    </linearGradient>
-    <linearGradient id="feeds" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0" stop-color="#22d3ee"/>
-      <stop offset="1" stop-color="#a855f7"/>
-    </linearGradient>
-    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
-      <feGaussianBlur stdDeviation="4" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
-    <filter id="softglow" x="-60%" y="-60%" width="220%" height="220%">
-      <feGaussianBlur stdDeviation="7" result="b"/>
-      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    <marker id="a-teal" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#2DD4BF"/></marker>
+    <marker id="a-violet" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#A78BFA"/></marker>
+    <marker id="a-amber" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#FBBF24"/></marker>
+    <marker id="a-slate" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#64748B"/></marker>
   </defs>
 
-  <rect width="900" height="900" rx="24" fill="url(#bg)"/>
+  <style>
+    .title { font-size: 26px; font-weight: 700; fill: #F1F5F9; }
+    .subtitle { font-size: 14px; fill: #94A3B8; }
+    .band { fill: #111A2E; stroke: #1E2A44; stroke-width: 1; }
+    .box { fill: #0E1628; stroke: #2A3754; stroke-width: 1; }
+    .tiername { font-size: 15px; font-weight: 700; fill: #F1F5F9; letter-spacing: 1.2px; }
+    .tiersub { font-size: 12.5px; fill: #94A3B8; }
+    .num { font-size: 14px; font-weight: 700; fill: #0B1120; }
+    .mono { font-family: Menlo, 'SF Mono', Consolas, monospace; }
+    .cmd { font-size: 16px; font-weight: 700; }
+    .label { font-size: 11.5px; font-weight: 700; letter-spacing: 1.6px; }
+    .file { font-size: 14px; fill: #E2E8F0; }
+    .path { font-size: 15px; font-weight: 700; fill: #F1F5F9; }
+    .text { font-size: 13px; fill: #CBD5E1; }
+    .muted { font-size: 12.5px; fill: #94A3B8; }
+    .tiny { font-size: 11.5px; fill: #64748B; }
+    .edge { font-size: 11.5px; fill: #94A3B8; }
+  </style>
 
-  <!-- Title -->
-  <text x="450" y="78" text-anchor="middle" font-size="42" font-weight="700" fill="#f8fafc" letter-spacing="1.5">3-TIER AI AGENT SYSTEM</text>
+  <!-- Background -->
+  <rect width="1200" height="800" rx="18" fill="#0B1120"/>
 
-  <!-- ===================== Connectors (drawn first, behind panels) ===================== -->
-  <g fill="none" stroke-width="3" filter="url(#glow)" opacity="0.9">
-    <!-- Tier 1 -> Tier 2 -->
-    <path d="M250,330 L250,378 Q250,400 272,400 L410,400 Q432,400 432,422 L432,452" stroke="#c084fc"/>
-    <path d="M450,330 L450,452" stroke="#22d3ee"/>
-    <path d="M650,330 L650,378 Q650,400 628,400 L490,400 Q468,400 468,422 L468,452" stroke="#f59e0b"/>
-    <!-- Tier 2 -> Tier 3 -->
-    <path d="M340,628 L340,660 Q340,682 318,682 L280,682 Q258,682 258,704 L258,736" stroke="#c084fc"/>
-    <path d="M450,628 L450,736" stroke="#22d3ee"/>
-    <path d="M560,628 L560,660 Q560,682 582,682 L620,682 Q642,682 642,704 L642,736" stroke="#f59e0b"/>
+  <!-- Header -->
+  <text x="40" y="56" class="title">LLM-RE-WIKI <tspan fill="#64748B" font-weight="400">·</tspan> 3-Tier Architecture</text>
+  <text x="40" y="84" class="subtitle">You give commands, the AI agent follows plain-Markdown instructions, and all knowledge is stored as files you own.</text>
+
+  <!-- ============ Tier bands ============ -->
+  <rect x="24" y="112" width="1152" height="120" rx="12" class="band"/>
+  <rect x="24" y="258" width="1152" height="258" rx="12" class="band"/>
+  <rect x="24" y="560" width="1152" height="156" rx="12" class="band"/>
+
+  <!-- Tier labels -->
+  <g>
+    <circle cx="62" cy="146" r="14" fill="#E2E8F0"/><text x="62" y="151" text-anchor="middle" class="num">1</text>
+    <text x="88" y="151" class="tiername">YOU</text>
+    <text x="48" y="182" class="tiersub">Type commands in your</text>
+    <text x="48" y="200" class="tiersub">AI agent's chat</text>
+
+    <circle cx="62" cy="292" r="14" fill="#E2E8F0"/><text x="62" y="297" text-anchor="middle" class="num">2</text>
+    <text x="88" y="297" class="tiername">AI AGENT</text>
+    <text x="48" y="328" class="tiersub">Claude Code · OpenCode</text>
+    <text x="48" y="346" class="tiersub">Pi · Cursor · others</text>
+    <text x="48" y="376" class="tiersub">Follows the instruction</text>
+    <text x="48" y="394" class="tiersub">files in <tspan class="mono" fill="#CBD5E1">.kb/</tspan> and runs</text>
+    <text x="48" y="412" class="tiersub">deterministic Python scripts</text>
+
+    <circle cx="62" cy="594" r="14" fill="#E2E8F0"/><text x="62" y="599" text-anchor="middle" class="num">3</text>
+    <text x="88" y="599" class="tiername">KNOWLEDGE BASE</text>
+    <text x="48" y="630" class="tiersub">Plain Markdown on disk</text>
+    <text x="48" y="648" class="tiersub">Works with Git, Obsidian</text>
+    <text x="48" y="666" class="tiersub">and VS Code</text>
   </g>
 
-  <!-- ===================== Tier 1: User Input Commands ===================== -->
-  <rect x="120" y="150" width="660" height="180" rx="20" fill="#10162880" stroke="#334155" stroke-width="1.5"/>
-  <text x="450" y="205" text-anchor="middle" font-size="24" font-weight="600" fill="#e2e8f0" letter-spacing="1">USER INPUT COMMANDS</text>
-
-  <g filter="url(#softglow)">
-    <rect x="160" y="240" width="180" height="56" rx="28" fill="#2a1240" stroke="#c084fc" stroke-width="2.5"/>
-    <rect x="360" y="240" width="180" height="56" rx="28" fill="#0c2e33" stroke="#22d3ee" stroke-width="2.5"/>
-    <rect x="560" y="240" width="180" height="56" rx="28" fill="#33280a" stroke="#f59e0b" stroke-width="2.5"/>
+  <!-- ============ Connectors (drawn behind boxes) ============ -->
+  <g fill="none" stroke-width="2">
+    <!-- Tier 1 -> router -->
+    <path d="M410,190 L410,284" stroke="#2DD4BF" marker-end="url(#a-teal)"/>
+    <path d="M710,190 L710,284" stroke="#A78BFA" marker-end="url(#a-violet)"/>
+    <path d="M1010,190 L1010,284" stroke="#FBBF24" marker-end="url(#a-amber)"/>
+    <!-- router -> instruction boxes -->
+    <path d="M410,330 L410,358" stroke="#2DD4BF" marker-end="url(#a-teal)"/>
+    <path d="M710,330 L710,358" stroke="#A78BFA" marker-end="url(#a-violet)"/>
+    <path d="M1010,330 L1010,358" stroke="#FBBF24" marker-end="url(#a-amber)"/>
+    <!-- instruction boxes -> storage -->
+    <path d="M410,492 L410,584" stroke="#2DD4BF" marker-end="url(#a-teal)"/>
+    <path d="M710,492 L710,584" stroke="#A78BFA" marker-end="url(#a-violet)"/>
+    <path d="M770,584 L770,546 Q770,538 778,538 L1002,538 Q1010,538 1010,530 L1010,496" stroke="#FBBF24" stroke-dasharray="6 5" marker-end="url(#a-amber)"/>
+    <!-- storage -> storage -->
+    <path d="M530,646 L584,646" stroke="#A78BFA" stroke-dasharray="6 5" marker-end="url(#a-violet)"/>
+    <path d="M830,646 L884,646" stroke="#64748B" marker-end="url(#a-slate)"/>
   </g>
-  <text x="250" y="275" text-anchor="middle" font-size="20" font-weight="600" fill="#e9d5ff" letter-spacing="1.5">INGEST</text>
-  <text x="450" y="275" text-anchor="middle" font-size="20" font-weight="600" fill="#a5f3fc" letter-spacing="1.5">COMPILE</text>
-  <text x="650" y="275" text-anchor="middle" font-size="20" font-weight="600" fill="#fde68a" letter-spacing="1.5">SEARCH</text>
+  <!-- edge labels -->
+  <text x="420" y="548" class="edge">saves page + images</text>
+  <text x="700" y="548" class="edge" text-anchor="end">writes articles + indexes</text>
+  <text x="890" y="530" class="edge" text-anchor="middle">reads wiki</text>
 
-  <!-- ===================== Tier 2: AI Agent Orchestrator ===================== -->
-  <rect x="230" y="452" width="440" height="176" rx="20" fill="#12193080" stroke="#3b4a63" stroke-width="1.5" filter="url(#softglow)"/>
-  <text x="450" y="502" text-anchor="middle" font-size="24" font-weight="600" fill="#e2e8f0" letter-spacing="1">AI AGENT ORCHESTRATOR</text>
-
-  <rect x="268" y="528" width="160" height="66" rx="12" fill="#1a1533" stroke="#a855f7" stroke-width="2"/>
-  <rect x="472" y="528" width="160" height="66" rx="12" fill="#0c2233" stroke="#22d3ee" stroke-width="2"/>
-  <text x="348" y="568" text-anchor="middle" font-size="19" font-weight="600" fill="#e9d5ff" letter-spacing="1">RULES</text>
-  <text x="552" y="568" text-anchor="middle" font-size="19" font-weight="600" fill="#a5f3fc" letter-spacing="1">DISPATCHER</text>
-
-  <!-- ===================== Tier 3: Knowledge Vault ===================== -->
-  <rect x="120" y="736" width="660" height="140" rx="20" fill="#10162880" stroke="#334155" stroke-width="1.5"/>
-  <text x="450" y="778" text-anchor="middle" font-size="22" font-weight="600" fill="#e2e8f0" letter-spacing="1">MARKDOWN KNOWLEDGE VAULT</text>
-
-  <!-- Raw inbox feeds (stacked bars) -->
-  <g filter="url(#glow)">
-    <rect x="170" y="800" width="150" height="14" rx="7" fill="url(#feeds)"/>
-    <rect x="170" y="822" width="150" height="14" rx="7" fill="url(#feeds)"/>
-    <rect x="170" y="844" width="150" height="14" rx="7" fill="url(#feeds)"/>
+  <!-- ============ Tier 1: commands ============ -->
+  <g>
+    <rect x="290" y="140" width="240" height="48" rx="24" fill="#2DD4BF" fill-opacity="0.12" stroke="#2DD4BF" stroke-width="1.5"/>
+    <text x="410" y="170" text-anchor="middle" class="mono cmd" fill="#5EEAD4">ingest &lt;url&gt;</text>
+    <rect x="590" y="140" width="240" height="48" rx="24" fill="#A78BFA" fill-opacity="0.12" stroke="#A78BFA" stroke-width="1.5"/>
+    <text x="710" y="170" text-anchor="middle" class="mono cmd" fill="#C4B5FD">compile &lt;file&gt;</text>
+    <rect x="890" y="140" width="240" height="48" rx="24" fill="#FBBF24" fill-opacity="0.12" stroke="#FBBF24" stroke-width="1.5"/>
+    <text x="1010" y="170" text-anchor="middle" class="mono cmd" fill="#FCD34D">search &lt;query&gt;</text>
   </g>
-  <text x="245" y="872" text-anchor="middle" font-size="12" font-weight="500" fill="#94a3b8" letter-spacing="0.5">RAW INBOX FEEDS</text>
 
-  <!-- Compiled graph nodes -->
-  <g stroke="#475569" stroke-width="1.5" opacity="0.8">
-    <line x1="320" y1="807" x2="470" y2="812"/>
-    <line x1="320" y1="829" x2="470" y2="812"/>
-    <line x1="320" y1="851" x2="530" y2="845"/>
-    <line x1="470" y1="812" x2="530" y2="845"/>
-    <line x1="530" y1="845" x2="600" y2="808"/>
-    <line x1="530" y1="845" x2="590" y2="862"/>
-    <line x1="600" y1="808" x2="640" y2="835"/>
-    <line x1="590" y1="862" x2="640" y2="835"/>
+  <!-- ============ Tier 2: agent ============ -->
+  <!-- Router bar -->
+  <rect x="290" y="286" width="840" height="44" rx="8" fill="#16213A" stroke="#33415E" stroke-width="1"/>
+  <text x="710" y="313" text-anchor="middle" class="text"><tspan class="mono" font-weight="700" fill="#F1F5F9">AGENTS.md / CLAUDE.md</tspan>  <tspan fill="#94A3B8">routes each command · always loads</tspan>  <tspan class="mono" fill="#F1F5F9">core-rules.md</tspan></text>
+
+  <!-- Instruction boxes -->
+  <g>
+    <rect x="290" y="360" width="240" height="132" rx="10" class="box"/>
+    <rect x="290" y="360" width="240" height="3" rx="1.5" fill="#2DD4BF"/>
+    <text x="310" y="388" class="label" fill="#2DD4BF">INGEST</text>
+    <text x="310" y="414" class="mono file">ingest-protocol.md</text>
+    <text x="310" y="442" class="muted">runs <tspan class="mono" fill="#E2E8F0">crawl.py</tspan></text>
+    <text x="310" y="468" class="muted">Fetches article + images</text>
+
+    <rect x="590" y="360" width="240" height="132" rx="10" class="box"/>
+    <rect x="590" y="360" width="240" height="3" rx="1.5" fill="#A78BFA"/>
+    <text x="610" y="388" class="label" fill="#A78BFA">COMPILE</text>
+    <text x="610" y="414" class="mono file">write-pipeline.md</text>
+    <text x="610" y="434" class="mono file">+ schemas/&lt;type&gt;.md</text>
+    <text x="610" y="460" class="muted">runs <tspan class="mono" fill="#E2E8F0">index_builder.py</tspan></text>
+    <text x="610" y="480" class="muted">Keeps code &amp; offsets verbatim</text>
+
+    <rect x="890" y="360" width="240" height="132" rx="10" class="box"/>
+    <rect x="890" y="360" width="240" height="3" rx="1.5" fill="#FBBF24"/>
+    <text x="910" y="388" class="label" fill="#FBBF24">SEARCH</text>
+    <text x="910" y="414" class="mono file">read-protocol.md</text>
+    <text x="910" y="442" class="muted">searches with <tspan class="mono" fill="#E2E8F0">rg</tspan> + indexes</text>
+    <text x="910" y="468" class="muted">Marks <tspan class="mono" fill="#E2E8F0">[V]</tspan> · <tspan class="mono" fill="#E2E8F0">[AI Synthesis]</tspan></text>
   </g>
-  <g filter="url(#glow)">
-    <circle cx="470" cy="812" r="9" fill="#22d3ee"/>
-    <circle cx="530" cy="845" r="8" fill="#22d3ee"/>
-    <circle cx="600" cy="808" r="8" fill="#f59e0b"/>
-    <circle cx="640" cy="835" r="7" fill="#f59e0b"/>
-    <circle cx="590" cy="862" r="6" fill="#f59e0b"/>
+
+  <!-- ============ Tier 3: storage ============ -->
+  <g>
+    <rect x="290" y="586" width="240" height="110" rx="10" class="box"/>
+    <text x="310" y="616" class="mono path">raw/</text>
+    <text x="310" y="642" class="text">Inbox: crawled pages</text>
+    <text x="310" y="660" class="text">and downloaded images</text>
+    <text x="310" y="682" class="mono tiny">feeds/ · assets/</text>
+
+    <rect x="590" y="586" width="240" height="110" rx="10" class="box"/>
+    <text x="610" y="616" class="mono path">wiki/</text>
+    <text x="610" y="642" class="text">Compiled articles with</text>
+    <text x="610" y="660" class="text">auto-built indexes</text>
+    <text x="610" y="682" class="mono tiny">YAML metadata · [[links]]</text>
+
+    <rect x="890" y="586" width="240" height="110" rx="10" class="box"/>
+    <text x="910" y="616" class="mono path">graph/</text>
+    <text x="910" y="642" class="text">Interactive knowledge</text>
+    <text x="910" y="660" class="text">graph in your browser</text>
+    <text x="910" y="682" class="mono tiny">index.html</text>
   </g>
-  <text x="595" y="888" text-anchor="middle" font-size="12" font-weight="500" fill="#94a3b8" letter-spacing="0.5">COMPILED MARKDOWN GRAPH NODES</text>
+
+  <!-- ============ Legend ============ -->
+  <g transform="translate(40,752)">
+    <line x1="0" y1="0" x2="26" y2="0" stroke="#2DD4BF" stroke-width="2.5"/><text x="34" y="4" class="muted">Ingest</text>
+    <line x1="100" y1="0" x2="126" y2="0" stroke="#A78BFA" stroke-width="2.5"/><text x="134" y="4" class="muted">Compile</text>
+    <line x1="210" y1="0" x2="236" y2="0" stroke="#FBBF24" stroke-width="2.5"/><text x="244" y="4" class="muted">Search</text>
+    <line x1="320" y1="0" x2="346" y2="0" stroke="#94A3B8" stroke-width="2"/><text x="354" y="4" class="muted">writes</text>
+    <line x1="414" y1="0" x2="440" y2="0" stroke="#94A3B8" stroke-width="2" stroke-dasharray="6 5"/><text x="448" y="4" class="muted">reads</text>
+  </g>
+  <text x="1160" y="756" text-anchor="end" class="muted">Also: <tspan class="mono">reindex · health-check · graph · gap report</tspan></text>
 </svg>

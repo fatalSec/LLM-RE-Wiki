@@ -134,8 +134,9 @@ if [ -x "$VENV_DIR/bin/python3" ]; then
     PYTHON_BIN="$VENV_DIR/bin/python3"
 fi
 
-"$PYTHON_BIN" "$VAULT_DIR/.kb/scripts/index_builder.py"
-"$PYTHON_BIN" "$VAULT_DIR/.kb/scripts/index_builder.py" --check
+if ! "$PYTHON_BIN" "$VAULT_DIR/.kb/scripts/index_builder.py"; then
+    printf "%b[!] KB health check found problems (listed above). Your notes are untouched; fix them when convenient.%b\n" "$YELLOW" "$RESET"
+fi
 
 # 7. Summary
 printf "\n%b%b[✓] LLM-RE-WIKI update complete!%b\n" "$GREEN" "$BOLD" "$RESET"

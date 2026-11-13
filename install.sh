@@ -322,10 +322,12 @@ chmod +x "$TARGET_DIR/"*.sh 2>/dev/null || true
 # Step 9: Verify Knowledge Base Integrity
 printf "\n%b==> Running KB Self-Check...%b\n" "$BOLD" "$RESET"
 cd "$TARGET_DIR"
+CHECK_PY="python3"
 if [ -x "$TARGET_DIR/.kb/scripts/.venv/bin/python3" ]; then
-    "$TARGET_DIR/.kb/scripts/.venv/bin/python3" .kb/scripts/index_builder.py --check
-else
-    python3 .kb/scripts/index_builder.py --check
+    CHECK_PY="$TARGET_DIR/.kb/scripts/.venv/bin/python3"
+fi
+if ! "$CHECK_PY" .kb/scripts/index_builder.py --check; then
+    printf "  %b[!] KB health check found problems (listed above). Installation still succeeded.%b\n" "$YELLOW" "$RESET"
 fi
 
 # Step 10: Complete!
