@@ -158,10 +158,10 @@ sequenceDiagram
     autonumber
     actor User
     participant Orch as Orchestrator Agent
-    participant Wiki as LLM Wiki (wiki/)
-    participant Java as Java/Smali Sub-Agent
-    participant Nat as Native/Emulation Sub-Agent
-    participant MCP as MCP Tooling (Jadx / Ghidra / Unicorn)
+    participant Wiki as "LLM Wiki (wiki/)"
+    participant Java as "Java / Smali Sub-Agent"
+    participant Nat as "Native / ARM64 Sub-Agent"
+    participant MCP as "MCP Tooling (Jadx / Ghidra / Unicorn)"
 
     User->>Orch: Analyze target.apk for root detection & encrypted C2
     Orch->>Wiki: Query index.md (tags: rasp, jni, string-decryption)
