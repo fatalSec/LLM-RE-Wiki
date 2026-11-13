@@ -28,3 +28,4 @@ When the user asks you to perform an action, load ONLY the required instruction 
 3. **Unified Granular Responses:** When answering questions, provide a single exhaustive technical document with exact opcodes and code snippets. Inline claim markers `[[wiki/...]]` and `[V]` for verified KB facts vs `[AI Synthesis]` for model deductions.
 4. **Auto-Index Verification:** Always run `python3 .kb/scripts/index_builder.py` immediately after creating or modifying any wiki article.
 5. **Python Environment:** Prefer `.kb/scripts/.venv/bin/python3` if it exists; otherwise use `python3`.
+
