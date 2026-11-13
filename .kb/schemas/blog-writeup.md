@@ -2,6 +2,7 @@
 
 > **Use when:** Source is a narrative walkthrough, dated technical blog, or CTF writeup.
 > **Common metadata:** See [_common-metadata.md](_common-metadata.md)
+> **Placeholders:** Everything in `<angle brackets>` is a placeholder. Replace it with values from the source, or delete the line. Never invent values.
 
 ---
 
@@ -11,84 +12,71 @@
 ---
 type: blog
 topic: wiki/<topic>/_index
-source: <URL>
-tags: [tag1, tag2]
-arch: [arm64, arm32, x86_64]
-complexity: beginner | intermediate | advanced
-completeness: stub | partial | complete
-last_verified: YYYY-MM-DD
-tool_versions: [Frida 16.x, Android 13]
-attack_ttps: [T1629.003]
+sources: [<URL>]
+tags: [<tag>, <tag>]
+arch: [<arm64 | arm32 | x86_64>]
+complexity: <beginner | intermediate | advanced>
+completeness: <stub | partial | complete>
+last_verified: <YYYY-MM-DD>
+tool_versions: [<Tool x.y>]
+attack_ttps: [<T####.###>]
 author: <name or handle>
-published: YYYY-MM-DD
-reproducibility: verified-by-me | unverified | likely-outdated
-llm_summary: "<A dense, 1-2 sentence summary of the article's technique, targets, and core bypass for direct LLM retrieval>"
+published: <YYYY-MM-DD>
+reproducibility: <verified-by-me | unverified | likely-outdated>
+llm_summary: "<Target + technique + bypass, key terms first, 1-2 sentences>"
 ---
-<!-- Note: Omit arch, tool_versions, or attack_ttps if not referenced in source. Do not leave placeholder text. -->
+<!-- Omit arch, tool_versions, or attack_ttps if the source doesn't mention them. -->
 
 # <Title / Target System>
 
-<!-- Optional: [Hub]([[wiki/<topic>/<hub-name>]]) | [Prev](...) | [Next](...) only for multi-part Hub+Chunk series; omit for Cohesive Modules -->
+<!-- Only for multi-part Hub + Chunk series: [[wiki/<topic>/<subject>/_hub|Hub]] | [[<prev-chunk>|Prev]] | [[<next-chunk>|Next]] -->
 
 ## 1. Target Context & Key Takeaways
-*   **Core Question:** <What exact question or challenge does this analysis solve?> [V]
-*   **Core Technique:** <Primary protection or evasion mechanism in 1 line> [V]
-*   **Prerequisites:** <Required environment, tools, and prior knowledge> [V]
-*   **Key Gotcha / Failure:** <Most critical point where tools or bypasses fail> [VS: x.x]
-*   **Reproducibility:** verified-by-me | unverified | likely-outdated
+- **Core Question:** <what problem or challenge this writeup solves>
+- **Core Technique:** <primary protection or evasion mechanism, one line>
+- **Prerequisites:** <environment, tools, prior knowledge>
+- **Key Gotcha:** <where tools or bypasses fail> [VS: <version>]
 
-## 2. Low-Level Technical Invariants [V]
-<!-- MANDATORY: Capture exact binary, memory, network, and filesystem indicators verbatim. DO NOT summarize hex/offsets. -->
-| Invariant / Indicator | Value / Primitive | Technical Context & Purpose |
+## 2. Low-Level Technical Invariants
+<!-- MANDATORY: every offset, constant, register, syscall, and path from the source, verbatim. -->
+| Invariant | Exact Value | Context & Purpose |
 |---|---|---|
-| Memory Offset | `0x100E4CF38` | Base check comparison branch (`B.NE loc_crash`) |
-| Hex / Constant | `0x3a5b6c7d` | Expected MurmurHash32 runtime integrity seed |
-| Registers | `X11`, `X12` | Double register check verifying memory address bounds |
-| System Call | `openat`, `read` | Byte-per-byte scan of `/proc/self/status` for TracerPid |
-| File / Directory | `/sys/class/` | Path check scanning for root and su binaries |
+| <offset / constant / register / syscall / path> | `<verbatim value>` | <what it does or gates> |
 
-## 3. Mechanism Deep Dive {#mechanism-name}
-<!-- For Cohesive Modules covering 2+ mechanisms in one file, duplicate this section with anchors:
-     ## 3.1 TracerPid Anti-Debug {#anti-debug}
-     ## 3.2 Frida Thread & Pipe Detection {#anti-frida} -->
+## 3. Mechanism Deep Dive {#<mechanism-anchor>}
+<!-- Cohesive Module with 2+ mechanisms: repeat this section as 3.1, 3.2… each with its own {#anchor}. -->
 - **Execution Flow:**
-  - Step 1: <Action with verbatim function names and symbols> [V]
-  - Step 2: <Action with register operations, stack state, or memory locks> [V]
+  1. <step, with verbatim function names and symbols>
+  2. <step, with register operations, stack state, or memory checks>
 
-### Disassembly & Inlined Image Transcriptions
-<!-- MANDATORY: Transcribe ALL images/screenshots (IDA/Ghidra graphs, hex dumps, tool outputs) verbatim where they appear -->
-> **[Image extracted — DISASSEMBLY | confidence: high]**
-> Function: `sub_1a690` (TracerPid status check):
+### Disassembly & Image Transcriptions
+<!-- MANDATORY: transcribe every image (IDA/Ghidra views, hex dumps, tool output) where it appears in the source. -->
+> **[Image extracted — <CATEGORY> | confidence: <high | low>]**
+> <function name / context>
 ```text
-0x020ee0: MOV  X0, #-100        ; AT_FDCWD
-0x020ee4: ADRP X1, #status_str   ; "/proc/self/status"
-0x020ee8: SVC  #0               ; sys_openat
-0x0231e8: SVC  #0               ; sys_read byte-by-byte
+<verbatim instructions, addresses, and comments>
 ```
 
-## 4. Known Bypass & Mitigation Vectors {#bypass}
-<!-- Document how the mechanism was defeated or mitigated -->
-### Vector 1: Dynamic Instrumentation (Frida Runtime Hook) {#frida-hook}
-```javascript
-// Complete, runnable code snippet verbatim from source
-Memory.protect(Module.getExportByName(null, 'rtld_db_dlactivity'), 4, 'rwx');
-Module.getExportByName(null, 'rtld_db_dlactivity').writeByteArray([0xc0, 0x03, 0x5f, 0xd6]);
+## 4. Bypass & Mitigation Vectors {#bypass}
+### Vector 1: <Approach, e.g. Frida hook> {#<vector-anchor>}
+```<language>
+<complete, runnable code verbatim from the source>
 ```
-*   **Target Point:** <Hooked method signature, symbol, or memory offset>
-*   **Result / Manipulation:** <Expected behavior, register changes, or spoofed return values>
-*   **Tested Environment:** <Tool versions, OS, Architecture>
+- **Target Point:** <hooked symbol, method signature, or offset>
+- **Result:** <changed behavior, spoofed return value, register change>
+- **Tested Environment:** <tool versions, OS, architecture>
 
-### Vector 2: Static Binary / Assembly Patching {#static-patch}
-*   **Target Offset:** `0x100E4CF38`
-*   **Original Instruction:** `B.NE loc_crash`
-*   **Patched Instruction:** `NOP` or `B loc_safe`
-*   **Notes:** <Instruction length, thumb mode, CRC checksum, or signing concerns>
+### Vector 2: <Approach, e.g. static patch> {#<vector-anchor>}
+- **Target Offset:** `<offset>`
+- **Original Instruction:** `<instruction>`
+- **Patched Instruction:** `<instruction>`
+- **Notes:** <instruction length, Thumb mode, checksums, re-signing>
 
-## 5. Scope Boundaries, Gotchas & Open Questions
-- **Gotchas / Silent Failures:** <Silent failure modes or version discrepancies> [VS: x.x]
-- **What This Article Does NOT Cover:** <Explicit scope boundary, e.g. "iOS-specific behavior — see [[wiki/other]]">
-- **Open Questions / Unverified Claims:** <Claims from source that could not be independently confirmed>
-- **Related Articles:** [[wiki/topic/article#anchor|Related Mechanism]]
+## 5. Scope Boundaries & Open Questions
+- **Gotchas / Silent Failures:** <failure modes, version differences> [VS: <version>]
+- **Not Covered:** <explicit scope boundary> — see [[wiki/<topic>/<article>]]
+- **Open Questions:** <claims from the source that couldn't be confirmed> [U]
+- **Related:** [[wiki/<topic>/<article>#<anchor>|<label>]]
 ```
 
 ---
@@ -98,14 +86,14 @@ Module.getExportByName(null, 'rtld_db_dlactivity').writeByteArray([0xc0, 0x03, 0
 ### Schema-Specific Fields
 | Field | Required | Notes |
 |---|---|---|
-| `author` | Yes | Author name or handle from the blog post |
+| `author` | Yes | Author name or handle |
 | `published` | Yes | Original publication date (YYYY-MM-DD) |
-| `reproducibility` | Yes | `verified-by-me` \| `unverified` \| `likely-outdated` — assesses real-world reliability |
-| `arch` | Conditional | Architecture (`arm64`, `arm32`, `x86_64`) if native binaries are analyzed. Omit if not applicable. |
-| `attack_ttps` | Conditional | MITRE ATT&CK Mobile/Enterprise IDs (e.g. `[T1629.003]`). Omit if not applicable. |
+| `reproducibility` | Yes | `verified-by-me` \| `unverified` \| `likely-outdated` |
+| `arch` | Conditional | Only if native binaries are analyzed |
+| `attack_ttps` | Conditional | Only if the source maps to MITRE ATT&CK |
 
 ### Content Rules
-- **Low-Level Invariants Table is Mandatory:** Any binary offset, checksum, register configuration, system call number, or file path must be logged exactly.
-- **Bypass & Mitigation Section is Mandatory:** Document how the check was defeated (hooking, patching, or filesystem spoofing).
-- **Verbatim Code & Opcodes:** Offsets, opcodes, registers, and bypass code must never be paraphrased or condensed.
-- **Date is Critical:** Blogs age rapidly. A 2019 Frida technique may fail on Frida 16.x or Android 14. Always pin versions.
+- **Invariants table is mandatory:** log every offset, checksum, register, syscall number, and path exactly.
+- **Bypass section is mandatory:** document how the check was defeated (hook, patch, or spoofing).
+- **Verbatim only:** offsets, opcodes, registers, and code are never paraphrased or shortened.
+- **Pin versions:** blogs age fast; a technique for one Frida or Android version may fail on the next.

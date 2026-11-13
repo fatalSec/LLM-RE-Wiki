@@ -144,8 +144,9 @@ def build_graph(wiki_dir: Path):
 
     # Pass 1: Discover all Nodes
     for file_path in md_files:
-        # Skip secondary cross-topic tables and logs from graph nodes
-        if file_path.name in ("_tools-index.md", "_snippets-index.md", "_patterns-index.md", "_ttp-index.md", "log.md"):
+        # Skip generated indexes and logs from graph nodes (the master index links every
+        # article and would turn the graph into a single star)
+        if file_path.name in ("_master-index.md", "_tools-index.md", "_snippets-index.md", "_patterns-index.md", "_ttp-index.md", "log.md"):
             continue
 
         rel_path = file_path.relative_to(wiki_dir)
@@ -155,9 +156,6 @@ def build_graph(wiki_dir: Path):
         fm, content = extract_frontmatter_and_content(file_path)
         title = parse_title(fm, content, file_path)
         topic = parse_topic(file_path, wiki_dir)
-        
-        if file_path.name == "_master-index.md":
-            topic = "_root"
 
         node_type = fm.get("type", "concept" if "_index" in file_path.name else "article")
         complexity = fm.get("complexity", "intermediate")

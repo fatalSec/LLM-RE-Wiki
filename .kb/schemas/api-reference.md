@@ -2,7 +2,8 @@
 
 > **Use when:** Source has function signatures, SDK reference docs, API parameters, or library usage guides.
 > **Common metadata:** See [_common-metadata.md](_common-metadata.md)
-> **Rule:** Reference signatures and their practical usage patterns are consolidated into this single file for direct traversal.
+> **Placeholders:** Everything in `<angle brackets>` is a placeholder. Replace it with values from the source, or delete the line. Never invent values.
+> **Rule:** Signatures and their usage patterns stay together in one file.
 
 ---
 
@@ -12,86 +13,59 @@
 ---
 type: api-doc
 topic: wiki/<topic>/_index
-source: <URL>
-tags: [tag1, tag2]
-sdk_library_version: "16.2.1"
-official_source: <URL>
-arch: [arm64, arm32, x86_64, all]
-complexity: intermediate | advanced
-completeness: stub | partial | complete
-last_verified: YYYY-MM-DD
-tool_versions: [Frida 16.x]
-llm_summary: "<A dense summary of the API class, core purpose, and primary RE use case for direct LLM retrieval>"
+sources: [<official docs or header URL first>, <other URL>]
+tags: [<tag>, <tag>]
+arch: [<arm64 | arm32 | x86_64 | all>]
+complexity: <intermediate | advanced>
+completeness: <stub | partial | complete>
+last_verified: <YYYY-MM-DD>
+tool_versions: [<Library x.y.z>]
+llm_summary: "<API/class + purpose + main RE use case, key terms first, 1-2 sentences>"
 ---
-<!-- Note: Omit arch or tool_versions if not referenced. Do not leave placeholder text. -->
+<!-- Omit arch if the source doesn't mention it. The library version goes in tool_versions so it appears in _tools-index.md. -->
 
 # <API or SDK Name> — Reference & Usage Patterns
 
-## 1. Class Purpose & Core Use Cases
-*   **Purpose:** <What this library/class does in 1 sentence, e.g. 'Used to dynamically construct AArch64 machine instructions at runtime.'> [V]
-*   **Primary RE Use Case:** <e.g. 'Dynamically patching native JNI methods to bypass integrity gates.'> [V]
-*   **When to Use:** <Exact scenario, e.g. 'When compiling memory instructions dynamically without writing raw shellcode bytes.'> [I]
-*   **When NOT to Use:** <Negative condition, e.g. 'Targeting 32-bit ARM architectures; use ArmWriter instead.'> [VS: AArch64]
+## 1. Purpose & Use Cases
+- **Purpose:** <what this library or class does, one sentence>
+- **Primary RE Use Case:** <how reverse engineers use it>
+- **When to Use:** <exact scenario> [I]
+- **When NOT to Use:** <negative condition and the alternative> [VS: <arch or version>]
 
-## 2. Architecture & Selection Guide
-| Target Scenario / Arch | Recommended API Class | Technical Rationale & Trade-offs |
+## 2. Selection Guide
+| Scenario / Arch | Recommended API | Rationale & Trade-offs |
 |---|---|---|
-| AArch64 (64-bit ARM) | `Arm64Writer` | Generates native 64-bit instruction encodings directly |
-| Memory Tracing | `Stalker` | Complete basic block tracing with minimal hook overhead vs Interceptor |
+| <scenario> | `<class or function>` | <why, and what it costs> |
 
----
-
-## 3. API Signatures & Behaviors {#signatures}
-
-### `<methodName(param: Type): ReturnType>`
-
+## 3. Signatures & Behavior {#signatures}
+<!-- Repeat this block per method or method group. -->
+### `<methodName>`
 ```<language>
-// Exact function/method signature verbatim from source
-methodName(param: Type): ReturnType
+<exact signature verbatim from the source>
 ```
-*   **Parameters:**
-    *   `param`: <Description, expected type, and constraint invariants>
-*   **Return Value:** <Detailed return behavior under success, null, and failure conditions>
-*   **Under-the-Hood Behavior:** <Non-obvious side-effects, memory locks, thread implications> [V]
-*   **Version Discrepancies:** <Behavioral changes across tool/library versions> [VS: x.x]
+- **Parameters:** `<param>`: <type, meaning, constraints>
+- **Returns:** <behavior on success, null, and failure>
+- **Under the Hood:** <side effects, locks, threading>
+- **Version Differences:** <behavior changes between versions> [VS: <version>]
 
-<!-- Duplicate block per logical API method group -->
-
----
-
-## 4. Complete Usage Patterns & Code Walkthroughs {#patterns}
-
-### Pattern 1: <Name of Task, e.g. Hooking Native Export & Spoofing Return> {#pattern-1}
-```javascript
-// Complete, runnable code snippet demonstrating the API usage verbatim
-Interceptor.attach(Module.getExportByName(null, 'open'), {
-    onEnter(args) {
-        this.path = args[0].readUtf8String();
-    },
-    onLeave(retval) {
-        if (this.path && this.path.includes("su")) {
-            retval.replace(ptr(-1));
-        }
-    }
-});
+## 4. Usage Patterns {#patterns}
+### Pattern 1: <Task name> {#<pattern-anchor>}
+```<language>
+<complete, runnable code verbatim from the source>
 ```
+- **Goal:** <what this code does>
+- **When to Use:** <scenario>
+- **Tested Environment:** <tool versions, OS, architecture>
+- **Walkthrough:**
+  1. **Lines <n-m>:** <what they do>
+  2. **Lines <n-m>:** <what they do>
+- **Gotchas:** <silent failures or crash conditions> [VS: <version>]
 
-#### Context & Step-by-Step Execution:
-*   **Goal:** <What task this code snippet accomplishes>
-*   **When to Use:** <Exact scenario where this snippet applies>
-*   **Tested Environment:** <Tool versions, OS, and Architecture>
-*   **Step-by-Step Execution Flow:**
-    1.  **Lines 1-3:** <Action taken, e.g. 'Attaches an Interceptor to the native open export.'>
-    2.  **Lines 4-8:** <Action taken, e.g. 'Inspects target filename argument from register X0 and spoofs return value to -1.'>
-*   **Pattern Gotchas:** <Conditions that trigger silent failures or memory crashes> [VS: x.x]
-
----
-
-## 5. Scope Boundaries, Gotchas & Open Questions
-- **General Gotchas & Silent Failures:** <Known version quirks, race conditions, or memory leaks> [V/VS]
-- **What This Article Does NOT Cover:** <Explicit scope boundary, e.g. "Windows/macOS native APIs — see [[wiki/other]]">
-- **Open Questions / Unverified Behaviors:** <Undocumented APIs or experimental features>
-- **Related Articles:** [[wiki/topic/article#anchor|Related API / Tool]]
+## 5. Scope Boundaries & Open Questions
+- **Gotchas:** <version quirks, race conditions, leaks>
+- **Not Covered:** <explicit scope boundary> — see [[wiki/<topic>/<article>]]
+- **Open Questions:** <undocumented or experimental behavior> [U]
+- **Related:** [[wiki/<topic>/<article>#<anchor>|<label>]]
 ```
 
 ---
@@ -101,11 +75,11 @@ Interceptor.attach(Module.getExportByName(null, 'open'), {
 ### Schema-Specific Fields
 | Field | Required | Notes |
 |---|---|---|
-| `sdk_library_version` | Yes | Target library version string (e.g. `"16.2.1"`) |
-| `official_source` | Yes | Direct link to official API docs or repository header file |
-| `arch` | Conditional | Supported architectures (`[arm64, arm32, x86_64, all]`). Omit if unapplicable. |
+| `tool_versions` | Yes | Library/SDK version this reference applies to (e.g. `[Frida 16.2.1]`) |
+| `sources` | Yes | List the official docs or header file first |
+| `arch` | Conditional | Supported architectures. Omit if not applicable. |
 
 ### Content Rules
-- **Signatures + Patterns Stay Together:** Never split signatures into a separate file from their practical code patterns.
-- **Mandatory Walkthroughs:** For every usage pattern, provide a step-by-step description under "Execution Flow".
-- **Verbatim Signatures:** Types, parameter names, and default values must be extracted exactly from official source headers.
+- **Signatures and patterns stay together:** never split them into separate files.
+- **Walkthrough required:** every usage pattern gets a line-by-line walkthrough.
+- **Verbatim signatures:** types, parameter names, and defaults are copied exactly from the official source.

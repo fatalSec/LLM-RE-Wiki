@@ -73,11 +73,12 @@ Type these in your agent's chat (plain-English requests work too):
 
 | Command | What it does |
 |---|---|
-| `ingest <url>` | Download a web page into `knowledge_base/raw/feeds/` with its images |
+| `ingest <url>` | Download a web page into `knowledge_base/raw/feeds/` with its images (skips URLs you already ingested) |
 | `compile <file>` | Turn a raw file into a structured wiki article and update the indexes |
 | `search <question>` | Answer from the wiki, with sources and provenance markers |
-| `reindex` | Rebuild the cross-topic indexes and the graph |
-| `health-check` | Find broken links, missing metadata, and unlinked articles |
+| `file answer` | Save the last answer to the inbox so you can compile it later |
+| `reindex` | Rebuild the indexes and the graph |
+| `health-check` | Find broken links, missing metadata, unlinked articles, and raw files not compiled yet |
 | `graph` | Open the interactive knowledge graph in your browser |
 | `gap report` | List thin topics and missing coverage |
 | `contradictions` | List articles with conflicting claims (`[X]`) |
@@ -85,7 +86,7 @@ Type these in your agent's chat (plain-English requests work too):
 You can also run the scripts directly:
 
 ```bash
-.kb/scripts/.venv/bin/python .kb/scripts/crawl.py "<url>"          # ingest
+.kb/scripts/.venv/bin/python .kb/scripts/crawl.py "<url>"          # ingest (add --force to re-crawl)
 python3 .kb/scripts/index_builder.py                               # reindex
 python3 .kb/scripts/index_builder.py --check                       # health check (exits 1 on errors)
 python3 .kb/scripts/graph_generator.py --open                      # graph
@@ -127,7 +128,8 @@ search        ──▶  answer with exact code and [V] / [AI Synthesis] markers
 
 - `AGENTS.md` / `CLAUDE.md` tell the agent which instructions to load for each command.
 - `.kb/` holds the rules, the compile and search steps, and one template per content type (blog, malware analysis, pentest finding, research paper, API reference, analysis notes).
-- Python scripts handle the deterministic parts: crawling, building indexes, checking links and metadata, and generating the graph.
+- Python scripts handle the deterministic parts: crawling (and skipping URLs you already ingested), building indexes, checking links and metadata, and generating the graph.
+- Search always takes two steps: `rg` for exact terms (function names, opcodes, hex), or the auto-generated `_master-index.md` (one line per article) for broad questions. The AI never edits index files, so they never go stale.
 
 <details>
 <summary><b>Project layout</b></summary>
@@ -150,8 +152,11 @@ LLM-RE-WIKI/
 │       ├── graph_generator.py # Knowledge graph data
 │       └── requirements.txt
 ├── knowledge_base/
-│   ├── raw/               # Inbox: crawled pages and images
+│   ├── raw/               # Inbox: crawled pages, images, and filed answers
 │   ├── wiki/              # Your compiled knowledge base
+│   │   ├── _master-index.md   # One line per article (auto-generated)
+│   │   ├── _tools-index.md    # Tool + version → articles (auto-generated)
+│   │   └── _ttp-index.md      # ATT&CK technique → articles (auto-generated)
 │   └── graph/             # Graph viewer (index.html)
 ├── install.sh / update.sh / uninstall.sh
 └── LICENSE
@@ -190,6 +195,15 @@ Some sites block bots or need JavaScript. Save the page as Markdown (e.g. with t
 
 **Can I add my own notes?**
 Yes. Drop any `.md` file into `knowledge_base/raw/feeds/` and run `compile <file>`.
+
+**What if two writeups cover the same target?**
+The agent merges the new details into the existing article instead of creating a duplicate. Both sources are listed in the article's `sources:` field, and conflicting claims are marked `[X]`.
+
+**What if I ingest the same URL twice?**
+It's skipped, and you're told which file already has it. Add `--force` to crawl it again (for example, if the page was updated).
+
+**Should I edit the index files?**
+No. `_master-index.md`, `_tools-index.md`, and `_ttp-index.md` are rebuilt from your articles on every `compile` or `reindex`, so manual edits would be overwritten.
 
 ---
 

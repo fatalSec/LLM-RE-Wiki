@@ -9,14 +9,16 @@
 
 Classify the raw file, then load the matching schema from `.kb/schemas/`.
 
-| Priority | Type | Signals | Schema |
-|---|---|---|---|
-| 1 | Pentest finding | CVSS, finding title, recommendation | `pentest-finding.md` |
-| 2 | Malware analysis | IOC tables, family name, C2 | `malware-analysis.md` |
-| 3 | Research paper | Abstract, citations, DOI | `research-paper.md` |
-| 4 | API / SDK doc | Function signatures, param tables | `api-reference.md` |
-| 5 | Analysis notes | First-person, hypothesis language | `analysis-notes.md` |
-| 6 | Blog / writeup | Narrative walkthrough, dated | `blog-writeup.md` |
+| Priority | Content | Signals | Schema file | `type:` value |
+|---|---|---|---|---|
+| 1 | Pentest finding | CVSS, finding title, recommendation | `pentest-finding.md` | `pentest-finding` |
+| 2 | Malware analysis | IOC tables, family name, C2 | `malware-analysis.md` | `malware-analysis` |
+| 3 | Research paper | Abstract, citations, DOI | `research-paper.md` | `research-paper` |
+| 4 | API / SDK doc | Function signatures, param tables | `api-reference.md` | `api-doc` |
+| 5 | Analysis notes | First-person, hypothesis language, filed answers (`answer-*.md`) | `analysis-notes.md` | `analysis-notes` |
+| 6 | Blog / writeup | Narrative walkthrough, dated | `blog-writeup.md` | `blog` |
+
+**Placeholders:** every `<…>` in a template is a placeholder. Fill it from the source or delete the line — never copy placeholder text or invent values.
 
 **Tiebreaker:** Highest priority wins. If the file covers two distinct domains, split per §3 and assign each chunk its own schema. Multi-topic files (3+ distinct `##` domains) → split per §3 first.
 
@@ -31,18 +33,17 @@ Classify the raw file, then load the matching schema from `.kb/schemas/`.
 3. **Classify** → select schema (§1).
 4. **Pre-flight plan:** Determine layout: **Cohesive Subject Module** (preferred for <1,200 words per §3) or **Hub + Semantic Chunks** (for massive multi-stage deep dives).
 5. **Load schema** from `.kb/schemas/<type>.md`.
-6. **YAML metadata:** Write required fields and a dense 1-2 sentence `llm_summary`.
+6. **YAML metadata:** Write required fields, `sources: [<url or file>]`, and a dense 1-2 sentence `llm_summary` with the most searchable terms first (its first ~120 characters go into the master index).
 7. **Write article(s)** per schema. Check off headings and code from the step 1 checklist as you write.
-8. **Update topic `_index.md`:** Add a 1-line link and summary under the parent topic index.
-9. **Cross-link:** Link every new article from ≥1 existing article or index.
-10. **Coverage check:** Confirm every heading, mechanism, and code block from the step 1 checklist is present in the output. Re-read raw text only if a missing item requires verification.
-11. **Rename** raw file: append `_processed`.
-12. **Automated Indexing & Graph Sync:** Run deterministic indexer:
+8. **Cross-link:** Link every new article from ≥1 related existing article, and link out to related articles. (Do **not** edit any index file — they are generated in step 11.)
+9. **Coverage check:** Confirm every heading, mechanism, and code block from the step 1 checklist is present in the output. Re-read raw text only if a missing item requires verification.
+10. **Rename** raw file: append `_processed`.
+11. **Automated Indexing & Graph Sync:** Run the deterministic indexer and fix any errors it reports:
     ```bash
     python3 .kb/scripts/index_builder.py
     ```
-    *(Automatically compiles `_tools-index`, `_snippets-index`, `_patterns-index`, `_ttp-index`, validates links, and syncs `graph_data.js`).*
-13. **Log** to `knowledge_base/wiki/log.md`:
+    *(Regenerates `_master-index`, `_tools-index`, `_ttp-index`, validates links and frontmatter, and syncs `graph_data.js`.)*
+12. **Log** to `knowledge_base/wiki/log.md`:
 ```markdown
 ## [YYYY-MM-DD] compile | <source>
 - Type: <type> | Articles created: <list> | Updated: <list>
@@ -85,7 +86,7 @@ wiki/<topic>/<subject>/
 ```
 Chunk filenames = mechanism only. Navigation at top of each chunk:
 ```markdown
-[Hub]([[wiki/<topic>/<subject>/_hub]]) | [Prev](...) | [Next](...)
+[[wiki/<topic>/<subject>/_hub|Hub]] | [[<prev-chunk>|Prev]] | [[<next-chunk>|Next]]
 ```
 
 ---
@@ -116,5 +117,5 @@ When new source overlaps an existing article:
 1. **Diff** → identify genuinely new details.
 2. **Merge inline** into existing sections. Tag: `[V: <new-source>]`.
 3. **Contradictions** → `[X: see <article>]` on both claims. Add to Open Questions. Prefer higher-quality source per `core-rules.md` §2.3.
-4. **Update YAML:** `last_verified`, `completeness`, add new `source`.
+4. **Update YAML:** `last_verified`, `completeness`, and append the new source to `sources:` (never replace existing entries).
 5. **Never create "Part 2"** — merge over proliferation.

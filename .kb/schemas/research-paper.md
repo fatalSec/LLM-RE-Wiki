@@ -1,7 +1,8 @@
 # Schema: Research Paper
 
-> **Use when:** Source has abstract, academic citations, methodology section, empirical evaluations, or DOI.
+> **Use when:** Source has an abstract, academic citations, a methodology section, empirical evaluation, or a DOI.
 > **Common metadata:** See [_common-metadata.md](_common-metadata.md)
+> **Placeholders:** Everything in `<angle brackets>` is a placeholder. Replace it with values from the source, or delete the line. Never invent values.
 
 ---
 
@@ -11,60 +12,58 @@
 ---
 type: research-paper
 topic: wiki/<topic>/_index
-source: <URL or DOI>
-tags: [tag1, tag2]
-authors: [Smith, John, Doe, Jane et al.]
-published: "USENIX Security 2024"
-doi_url: <link>
-arch: [arm64, arm32, x86_64, all]
-attack_ttps: [T1xxx]
-complexity: intermediate | advanced
-completeness: stub | partial | complete
-last_verified: YYYY-MM-DD
-tool_versions: [<tool x.x>]
-llm_summary: "<A dense, 1-2 sentence summary of the paper's core findings and practical applicability to Reverse Engineering for direct LLM retrieval>"
+sources: [<DOI or URL>]
+tags: [<tag>, <tag>]
+authors: ["<First Last>", "<First Last>"]
+venue: "<Conference or journal YYYY>"
+doi_url: <DOI or arXiv link>
+arch: [<arm64 | arm32 | x86_64 | all>]
+attack_ttps: [<T####.###>]
+complexity: <intermediate | advanced>
+completeness: <stub | partial | complete>
+last_verified: <YYYY-MM-DD>
+tool_versions: [<Tool x.y>]
+llm_summary: "<Core finding + practical RE applicability, key terms first, 1-2 sentences>"
 ---
-<!-- Note: Omit tool_versions, arch, or attack_ttps if not referenced. Do not leave placeholder text. -->
+<!-- Omit tool_versions, arch, or attack_ttps if the paper doesn't mention them. -->
 
 # <Paper Title>
 
-## 1. Paper Overview & Key Takeaways
-<!-- Self-contained. Must answer 80% of technical queries without reading further. -->
-*   **[FINDING]** <Core empirical or theoretical result in 1-2 lines> [V]
-*   **[LIMITATION]** <Most significant technical limitation identified by the authors> [V]
-*   **[RE-APPLICABILITY]** <Exact practical relevance to modern Reverse Engineering / bypass work> [I]
+## 1. Overview & Key Takeaways
+<!-- Self-contained: should answer most questions without reading further. -->
+- **[FINDING]** <core result, 1-2 lines>
+- **[LIMITATION]** <most significant limitation stated by the authors>
+- **[RE-APPLICABILITY]** <practical relevance to reverse engineering or bypass work> [I]
 
-## 2. Problem Statement & Motivation
-- **Gap Addressed:** <What technical problem or evasion pattern does this paper investigate?> [V]
-- **Failure of Existing Approaches:** <Why current static/dynamic analysis tools fail on this problem> [V]
+## 2. Problem & Motivation
+- **Gap Addressed:** <problem or evasion pattern investigated>
+- **Why Existing Approaches Fail:** <limits of current tools>
 
-## 3. Methodology & System Architecture
-- **Proposed Approach:** <Core algorithm, instrumentation technique, or formal model> [V]
-- **Target Dataset & Environment:** <Number of APKs/binaries analyzed, Android versions, test devices> [V]
-- **Frameworks & Tools Built:** <Names, open-source status, and architecture of tools introduced> [V]
+## 3. Methodology & System
+- **Approach:** <algorithm, instrumentation technique, or model>
+- **Dataset & Environment:** <sample counts, OS versions, devices>
+- **Tools Built:** <names, open-source status, architecture>
 
-## 4. Low-Level Invariants & Empirical Findings [V] {#empirical-findings}
-<!-- Capture concrete formulas, detection rates, performance overheads, or memory invariants -->
-| Metric / Invariant | Evaluated Value | Technical Significance & Baseline Context |
+## 4. Empirical Findings {#empirical-findings}
+<!-- Exact numbers, formulas, and invariants, verbatim. -->
+| Metric / Invariant | Exact Value | Significance & Baseline |
 |---|---|---|
-| Detection Accuracy | `98.4%` | True positive rate on obfuscated samples (Baseline: 72.1% on commercial RASP) |
-| Runtime Overhead | `< 4.2ms` | Tracing overhead per basic block execution |
-| Core Syscall / API | `sys_ptrace` | `PTRACE_TRACEME` hook point analyzed for anti-analysis detection |
+| <metric, syscall, or invariant> | `<verbatim value>` | <what it shows, compared with what> |
 
-## 5. Practical Reverse Engineering Applicability {#poc}
-<!-- Most important section for this KB: translating academic theory into actionable RE techniques -->
-- **Actionable Techniques:** <Concrete tools, scripts, or heuristic rules that can be used immediately> [V/I]
-- **Informed Wiki Topics:** Which security mechanisms or attack patterns this enhances: [[wiki/topic/article]]
-- **Proof-of-Concept / Usage Patterns:**
+## 5. Practical RE Applicability {#poc}
+<!-- The most important section for this KB: turn theory into usable techniques. -->
+- **Actionable Techniques:** <tools, scripts, or heuristics usable now> <[I] if inferred>
+- **Related Wiki Topics:** [[wiki/<topic>/<article>]]
+- **Proof of Concept:**
 ```<language>
-// Runnable snippet, hook, or deobfuscation script introduced in the paper
+<code from the paper or its repository, verbatim>
 ```
 
 ## 6. Scope Boundaries & Open Questions
-- **Limitations Stated by Authors:** <Author-acknowledged constraints, e.g. "Only evaluated on AArch64"> [V]
-- **What This Paper Does NOT Cover:** <Explicit scope boundary, e.g. "Commercial packers using virtualization">
-- **Open Questions / Unverified Claims:** <Claims requiring independent laboratory verification>
-- **Related Articles:** [[wiki/topic/article]] — reason for relationship
+- **Author-Stated Limitations:** <e.g. evaluated only on one architecture>
+- **Not Covered:** <explicit scope boundary>
+- **Open Questions:** <claims needing independent verification> [U]
+- **Related:** [[wiki/<topic>/<article>]] — <reason>
 ```
 
 ---
@@ -74,12 +73,12 @@ llm_summary: "<A dense, 1-2 sentence summary of the paper's core findings and pr
 ### Schema-Specific Fields
 | Field | Required | Notes |
 |---|---|---|
-| `authors` | Yes | YAML array of author names (e.g. `[Smith, John, Doe, Jane et al.]`) |
-| `published` | Yes | Publication venue and year (e.g. `"USENIX Security 2024"`, `"IEEE S&P 2023"`) |
-| `doi_url` | Conditional | DOI link or ArXiv URL. Required if paper is indexed. |
-| `attack_ttps` | Conditional | Mapped MITRE ATT&CK TTPs evaluated in the paper. Omit if unmapped. |
+| `authors` | Yes | YAML list, one full name per entry: `["John Smith", "Jane Doe"]` |
+| `venue` | Yes | Conference or journal and year (e.g. `"USENIX Security 2024"`) |
+| `doi_url` | Conditional | DOI or arXiv link if the paper has one |
+| `attack_ttps` | Conditional | MITRE ATT&CK IDs evaluated in the paper. Omit if unmapped. |
 
 ### Content Rules
-- **Focus on RE Applicability:** Academic papers often emphasize formal proofs; extract the concrete offsets, algorithms, and practical tooling.
-- **Preserve Empirical Data Verbatim:** Retain exact sample counts, detection rates, and benchmark timings.
-- **Maintain Clear Boundaries:** Declare limitations explicitly in Section 6.
+- **Focus on RE applicability:** extract concrete algorithms, offsets, and tooling, not proofs.
+- **Numbers are verbatim:** keep exact sample counts, detection rates, and timings.
+- **State limitations explicitly** in §6.
