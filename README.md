@@ -1,268 +1,244 @@
-# LLM-RE-WIKI
+# LLM-RE-Wiki
 
-[![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white)](https://www.python.org/)
-[![Markdown Vault](https://img.shields.io/badge/Storage-Plain%20Markdown-black?logo=markdown&logoColor=white)](knowledge_base/wiki/)
-[![Interactive Graph](https://img.shields.io/badge/Visualizer-Force--Directed%20Graph-purple)](knowledge_base/graph/index.html)
-[![YouTube Walkthrough](https://img.shields.io/badge/YouTube-Watch%20Tutorial-red?logo=youtube&logoColor=white)](https://youtu.be/8JgcliENtPQ)
-[![Version](https://img.shields.io/badge/Release-v2.0%20Optimized-success)](#whats-new-in-v2)
+**A structured, token-optimized Reverse Engineering Knowledge Base and Multi-Agent Orchestration Framework for AI-assisted binary analysis.**
 
-> 📺 **Looking for the YouTube Video Version?**  
-> The exact codebase featured in the [YouTube Tutorial](https://youtu.be/8JgcliENtPQ) is preserved on the [`v1-video`](https://github.com/fatalSec/LLM-RE-WIKI/tree/v1-video) branch.  
-> You are currently on **`main` (v2)**, engineered for enterprise-grade token efficiency, fast-path 2-turn retrieval, and automated deterministic indexing.
+[![Agent Harness](https://img.shields.io/badge/Harness-OpenCode%20%7C%20Claude%20Code-blue)](#system-architecture)
+[![Protocol](https://img.shields.io/badge/MCP-Enabled-emerald)](#architectural-layers)
+[![Knowledge Pattern](https://img.shields.io/badge/Pattern-LLM%20Wiki-purple)](#knowledge-engine-ingestion--progressive-retrieval)
+[![License](https://img.shields.io/badge/License-MIT-gray)](#license)
 
 ---
 
 ## Overview
 
-**LLM-RE-WIKI** is an open-source, file-based AI Knowledge Base custodian for reverse engineering, malware analysis, and offensive security research. 
+General-purpose LLMs struggle with real-world reverse engineering for three reasons: **context window exhaustion** from raw disassembly/decompilation dumps, **hallucinated APIs or instruction semantics**, and **stateless sessions** that lose hard-won reversing insights across targets.
 
-It is **not** a generic chatbot wrapper or an opaque vector database. Instead, it is an instruction-driven architecture (`AGENTS.md` + `.kb/`) that turns any capable coding agent ([Claude Code](https://claude.ai/), [Cursor](https://cursor.com/), [Windsurf](https://codeium.com/windsurf), or [Antigravity](https://github.com/google)) into a rigorous, anti-hallucinating security librarian.
-
-The agent crawls blogs, papers, pentest findings, and disassembly notes, compiles them into structured, cross-linked Markdown modules with **verbatim technical primitives** (offsets, opcodes, syscalls, bypass scripts), and visualizes the entire research corpus in an interactive force-directed knowledge graph.
-
-<p align="center">
-  <img src="docs/architecture.png" alt="3-tier AI agent system: user input commands (ingest / compile / search) → AI agent orchestrator (rules + dispatcher) → markdown knowledge vault (raw feeds → compiled graph nodes)" width="700">
-</p>
+**LLM-RE-Wiki** solves this by decoupling **persistent domain knowledge** from **deterministic binary analysis**:
+- **Persistent LLM Wiki (`wiki/`):** Raw writeups, architecture manuals, and protection bypass notes are compiled into atomic, YAML-indexed, token-compressed Markdown pages that agents query progressively.
+- **Role-Specialized Sub-Agents (`AGENTS.md`, `SKILLS.md`):** An orchestrator delegates static, native, and dynamic analysis tasks to focused sub-agents constrained by deterministic execution plans (`PLAN.md`).
+- **Deterministic MCP Tooling:** Agents never guess control flow or encrypted strings—they inspect binaries directly via headless decompilers, disassemblers, and CPU emulators over the Model Context Protocol (MCP).
 
 ---
 
-## Why LLM-RE-WIKI?
+## System Architecture
 
-Security research notes decay rapidly:
-- **Paraphrasing Rot:** Traditional LLMs summarize away critical registers, JNI signatures, and exact hex bytes.
-- **RAG Context Fragmentation:** Chunking algorithms break continuous assembly routines and multi-stage unpackers into disjoint fragments.
-- **Hallucinated Ground Truth:** After a few months, it becomes impossible to distinguish what was *empirically verified* against hardware from what an LLM *guessed*.
+The platform is organized into four decoupled layers separating **knowledge curation**, **agent reasoning**, **deterministic execution**, and **target artifacts**:
 
-LLM-RE-WIKI enforces the opposite discipline:
-1. **Zero-Loss Verbatim Compilation:** Disassembly instructions, hex bytes, struct layouts, and exploit scripts are preserved verbatim—never compressed or paraphrased.
-2. **Provenance on Every Claim:** A strict inline marker system separates verified source facts (`[V]`) from logical inferences (`[I]`), unconfirmed claims (`[U]`), version quirks (`[VS]`), and model intelligence (`[AI Synthesis]`).
-3. **Machine-Navigable Markdown:** Every article carries YAML frontmatter and bidirectional Obsidian-style links (`[[wiki/...]]`) so consuming LLMs can traverse technical relationships deterministically.
-4. **100% Local & Portable:** All data lives in plain markdown files on disk. No vector DBs, no embeddings servers, no lock-in. Diff it with Git, view it in Obsidian, or edit it in VS Code.
+```mermaid
+flowchart TB
+    classDef knowledge fill:#1e1b4b,stroke:#818cf8,color:#f8fafc,stroke-width:1.5px
+    classDef agent fill:#0f172a,stroke:#38bdf8,color:#f8fafc,stroke-width:1.5px
+    classDef tool fill:#064e3b,stroke:#34d399,color:#f8fafc,stroke-width:1.5px
+    classDef artifact fill:#27272a,stroke:#a1a1aa,color:#f8fafc,stroke-width:1.5px
+
+    subgraph L1["1. Knowledge Curation & Wiki Layer"]
+        direction LR
+        RAW["raw_targets/<br/>(Writeups, Docs, Dumps)"]:::knowledge
+        INGEST["Ingestion & Compaction<br/>(Idempotent Schema Parser)"]:::knowledge
+        WIKI["wiki/<br/>(Atomic YAML Markdown)"]:::knowledge
+        ASSETS["raw_targets/assets/<br/>(Graphs & Diagrams)"]:::knowledge
+        RAW --> INGEST --> WIKI
+        INGEST --> ASSETS
+    end
+
+    subgraph L2["2. Agent Orchestration Layer (OpenCode / Claude Code)"]
+        direction TB
+        HARNESS["CLI Agent Harness<br/>(AGENTS.md / PLAN.md / SKILLS.md)"]:::agent
+        ORCH["Orchestrator Agent<br/>(Intent Routing & Context Budget)"]:::agent
+        SA_JAVA["Java / Smali Sub-Agent<br/>(Manifest, Dex, Control Flow)"]:::agent
+        SA_NAT["Native / ARM64 Sub-Agent<br/>(JNI, ELF/Mach-O, Obfuscation)"]:::agent
+        SA_DYN["Dynamic / Emulation Sub-Agent<br/>(String Decryption & Hooking)"]:::agent
+
+        HARNESS --> ORCH
+        ORCH --> SA_JAVA
+        ORCH --> SA_NAT
+        ORCH --> SA_DYN
+    end
+
+    subgraph L3["3. Deterministic RE Tooling & MCP Bridge"]
+        direction LR
+        JADX["jadx-headless-mcp<br/>& Apktool"]:::tool
+        GHIDRA["Ghidra Headless<br/>& radare2"]:::tool
+        EMU["Unicorn Engine<br/>& Capstone"]:::tool
+    end
+
+    subgraph L4["4. Target Binaries & Deliverables"]
+        direction LR
+        BIN["Target Binaries<br/>(APK / IPA / .so / Mach-O)"]:::artifact
+        OUT["Verified Audit Report<br/>(IOCs, Call Graphs, Bypass PoCs)"]:::artifact
+    end
+
+    WIKI <-->|"Progressive Retrieval"| ORCH
+    WIKI <-->|"Domain Playbooks"| SA_NAT
+    SA_JAVA <--> JADX
+    SA_NAT <--> GHIDRA
+    SA_DYN <--> EMU
+    BIN --> L3
+    ORCH --> OUT
+```
+
+### Architectural Layers
+1. **Knowledge Curation & Wiki Layer:** Converts unstructured security research into normalized, cross-linked Markdown documents with strict token budgets so agents retrieve only high-signal context.
+2. **Agent Orchestration Layer:** Uses `AGENTS.md` and `PLAN.md` to enforce structured multi-phase analysis—preventing single-agent context collapse on large APKs or heavily obfuscated native libraries.
+3. **Deterministic RE Tooling & MCP Bridge:** Connects sub-agents to headless static and dynamic tooling (`jadx-headless-mcp`, `Apktool`, `Ghidra`, `radare2`, `Unicorn`, `Capstone`) with boot-time health verification.
+4. **Target Binaries & Deliverables:** Grounds every finding in verifiable offsets, decompiled symbols, or emulated register states.
 
 ---
 
-## What's New in v2 (Optimizations)
+## Repository Structure
 
-The `main` branch includes major architectural improvements based on Anthropic and industry agent benchmarks:
-
-| Capability | v1 (Video Snapshot) | v2 (`main`) | Benefit |
-|---|---|---|---|
-| **Query Retrieval** | 4-hop sequential file reads | **Fast-Path 2-turn retrieval** (`rg`/lookup) | **~70% reduction in context token costs** |
-| **Secondary Indexing** | LLM manually formats 4 markdown tables | **Automated via `index_builder.py`** | **Saves ~10k generation tokens per compile** |
-| **Document Granularity** | Micro-chunking (1 file per mechanism) | **Cohesive Subject Modules + Anchors** | **Eliminates 60% boilerplate overhead** |
-| **Provenance Syntax** | `[V]` on every sentence and table cell | **Scoped baseline with delta-only tagging** | **Lower output token latency** |
-| **Link Integrity** | Manual LLM link checks | **Automated link & orphan validation** | **Zero broken links guaranteed** |
-
----
-
-## Architecture
-
-LLM-RE-WIKI operates as a clean **3-tier system**:
-
-```
-./ (Repository Root)
-├── AGENTS.md                  ← Master Dispatcher: task router & core operational rules
-├── .kb/                       ← Agent "Firmware": rules, schemas, protocols, and automation
-│   ├── core-rules.md          ← Anti-hallucination baseline & behavioral constraints
-│   ├── read-protocol.md       ← Query engine: Fast-Path search & discovery traversal
-│   ├── write-pipeline.md      ← Ingest-to-Wiki compilation pipeline & module routing
-│   ├── ingest-protocol.md     ← URL ingestion protocol & crawler instructions
-│   ├── index-formats.md       ← Master and cross-topic index schemas
-│   ├── maintenance.md         ← Vault health checks, gap analysis, and contradictions
-│   ├── schemas/               ← Content-type schemas (malware, pentest, API, paper, etc.)
-│   └── scripts/               ← Automation utilities
-│       ├── crawl.py           ← Headless crawler with readability & image extraction
-│       ├── index_builder.py   ← Automated secondary index generator & health checker
-│       ├── graph_generator.py ← Obsidian link parser & visualizer data generator
-│       └── requirements.txt   ← Python dependencies
-└── knowledge_base/            ← The Knowledge Vault (all persistent state)
-    ├── raw/                   ← Staging inbox: downloaded feeds, writeups, and assets
-    │   ├── feeds/             ← Raw markdown writeups (.md)
-    │   └── assets/            ← Downloaded images and diagrams (.png)
-    ├── wiki/                  ← Compiled Knowledge Base (Obsidian-compatible)
-    └── graph/                 ← Force-directed interactive knowledge graph (index.html)
-```
-
----
-
-## Core Workflow
-
-```
-ingest <url>   ──▶   compile <file>   ──▶   search <query>
- (Staging)              (Synthesis)            (Retrieval)
-    │                       │                       │
-    ▼                       ▼                       ▼
-raw/feeds/<slug>.md    knowledge_base/wiki/    Unified technical answer
-raw/assets/<slug>/*    + Auto-indexes (v2)     with exact opcodes &
-                       + graph_data.js         inline provenance markers
-```
-
-### 1. Ingest
-Crawl technical blogs, writeups, or documentation. `crawl.py` extracts the primary article text, recovers diagrams, downloads all images locally to `knowledge_base/raw/assets/`, converts WebP to PNG, and stages clean markdown in `knowledge_base/raw/feeds/`.
-
-### 2. Compile
-The agent classifies the content type, extracts a coverage checklist, transcribes images/disassembly, and compiles the notes into a **Cohesive Subject Module** with anchor headings (`### Mechanism {#anchor}`). It updates the topic index and runs `index_builder.py` to deterministically regenerate cross-topic indexes and the knowledge graph.
-
-### 3. Search
-The agent uses **Fast-Path Retrieval** (`rg` keyword search or frontmatter scan) to jump directly to the target module in **1–2 conversational turns**, outputting a consolidated technical brief with function signatures, opcodes, and explicit provenance markers.
-
-### 4. Visualize
-Open `knowledge_base/graph/index.html` in any browser to explore an interactive, searchable, force-directed graph of the entire knowledge base colored by topic.
-
----
-
-## Quickstart
-
-### One-Line Installation
-
-Install and configure LLM-RE-WIKI in seconds with the universal installer:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/fatalSec/LLM-RE-WIKI/main/install.sh | bash
-```
-
-The installer automatically:
-- Verifies system prerequisites (`git`, `python3 3.9+`, `curl`).
-- Probes for installed AI coding agents: **Claude Code** (`claude`), **OpenCode** (`opencode`), and **Pi** (`pi`).
-- Prompts you to choose which agent(s) to configure (or run non-interactively with `-y` / `--yes`).
-- Clones the repository, provisions `.kb/scripts/.venv`, and runs the self-test suite.
-- Installs the global `llm-re-wiki` management CLI into `~/.local/bin/`.
-
-#### Launching Your Agent
-
-Once installed, launch the KB custodian in your preferred agent:
-
-```bash
-# Claude Code (auto-bridges via CLAUDE.md)
-llm-re-wiki claude     # or: cd ~/llm-re-wiki && claude
-
-# OpenCode (auto-bridges via AGENTS.md)
-llm-re-wiki opencode   # or: cd ~/llm-re-wiki && opencode
-
-# Pi (auto-bridges via AGENTS.md)
-llm-re-wiki pi         # or: cd ~/llm-re-wiki && pi
-```
-
-#### Idempotent Lifecycle Scripts & CLI
-
-LLM-RE-WIKI uses **declarative, idempotent shell lifecycle scripts** rather than opaque compiled binaries. You can invoke them directly in the repository or through the optional `llm-re-wiki` shell wrapper:
-
-| Task | Direct Script | CLI Wrapper | Action & Safety Guarantee |
-|---|---|---|---|
-| **Install** | `./install.sh` | — | Detects agents (Claude/OpenCode/Pi), bootstraps venv, symlinks CLI |
-| **Update** | `./update.sh` | `llm-re-wiki update` | Fast-forwards upstream (`git pull --ff-only`), syncs venv, reindexes; **strictly preserves local notes and targets** |
-| **Uninstall** | `./uninstall.sh` | `llm-re-wiki uninstall` | Offers safe backup archive (`~/llm-re-wiki-backup-*.tar.gz`) or unlinks CLI without deleting research notes |
-| **Launch Agent** | — | `llm-re-wiki [agent]` | Launches Claude Code, OpenCode, or Pi inside the vault |
-| **Graph** | — | `llm-re-wiki graph` | Rebuilds and opens interactive knowledge graph visualizer |
-| **Health** | — | `llm-re-wiki health` | Runs automated dead-link and orphan validator |
-
-> **Why Declarative Shell Scripts Over Compiled Binaries?**
-> - **Knowledge Evolves Faster Than Binaries:** The core value lives in mutable text artifacts—token-optimized schemas, protocols, and markdown notes. You never need to cut releases for new RASP bypasses or Frida scripts.
-> - **Zero Gatekeeper & Signing Friction:** No macOS Gatekeeper / notarization blocks, no platform-specific cross-compilation CI/CD, and zero execution overhead.
-> - **Clean State Preservation:** `update.sh` uses declarative `git pull --ff-only` and safety stashes, ensuring user notes in `knowledge_base/` and custom target directories are never clobbered.
-> - **Native Agent Harness Discovery:** OpenCode, Claude Code, and Pi discover agent instructions (`AGENTS.md`, `CLAUDE.md`) directly from predictable filesystem paths. Keeping files transparent on disk simplifies MCP debugging and inspection.
-
----
-
-### Manual Setup (Step-by-Step)
-
-If you prefer manual setup without the global CLI:
-
-#### 1. Clone & Setup
-```bash
-git clone https://github.com/fatalSec/LLM-RE-WIKI.git
-cd LLM-RE-WIKI
-
-# Create virtual environment and install crawler dependencies
-python3 -m venv .kb/scripts/.venv
-.kb/scripts/.venv/bin/pip install -r .kb/scripts/requirements.txt
-```
-
-#### 2. Crawl a Technical Writeup
-```bash
-.kb/scripts/.venv/bin/python .kb/scripts/crawl.py "https://example.com/dexprotector-analysis"
-```
-*Output: `knowledge_base/raw/feeds/dexprotector-analysis.md` and downloaded images in `knowledge_base/raw/assets/`.*
-
-#### 3. Compile with Your AI Agent
-Open the repository in your agent (e.g., Claude Code, OpenCode, Pi, or Cursor) and run:
 ```text
-compile dexprotector-analysis.md
+LLM-RE-Wiki/
+├── AGENTS.md                 # Orchestrator and sub-agent routing rules & constraints
+├── PLAN.md                   # Deterministic multi-stage RE execution workflow
+├── SKILLS.md                 # Reusable domain skills (RASP bypass, JNI tracing, crypto)
+├── wiki/                     # Token-optimized, YAML-indexed knowledge base
+│   ├── index.md              # Master topic & tag catalog for fast progressive lookup
+│   ├── android/              # Dalvik/ART, Smali fallback, Binder, RASP patterns
+│   ├── native/               # ARM64/x86_64 internals, ELF/Mach-O, MBA deobfuscation
+│   └── crypto/               # Custom ciphers, white-box crypto, FindCrypt constants
+├── raw_targets/              # Unprocessed source material queued for ingestion
+│   ├── assets/               # Extracted diagrams, call graphs, and visual references
+│   └── ingest.log            # SHA-256 idempotency ledger preventing duplicate runs
+├── agents/                   # Harness-specific agent definitions (OpenCode / Claude Code)
+└── scripts/
+    ├── install.sh            # Registers agents, links skills, verifies MCP servers
+    ├── update.sh             # Fast-forwards wiki & skills without touching local targets
+    └── uninstall.sh          # Cleanly removes symlinks and agent registrations
 ```
-The agent reads `AGENTS.md` (or `CLAUDE.md`), loads the schema, writes the compiled wiki article(s), and automatically updates indexes and graph data.
 
-#### 4. Query the Knowledge Base
-Ask your agent any technical question:
-```text
-search "How does DexProtector detect Frida linker trampolines?"
+---
+
+## Knowledge Engine: Ingestion & Progressive Retrieval
+
+Rather than dumping entire manuals into the prompt, `LLM-RE-Wiki` enforces a two-stage **compile-once, query-progressively** pipeline:
+
+```mermaid
+flowchart LR
+    classDef src fill:#27272a,stroke:#a1a1aa,color:#f8fafc
+    classDef proc fill:#1e1b4b,stroke:#818cf8,color:#f8fafc
+    classDef store fill:#064e3b,stroke:#34d399,color:#f8fafc
+    classDef query fill:#0f172a,stroke:#38bdf8,color:#f8fafc
+
+    A["Raw Source<br/>(Blog / PDF / Notes)"]:::src --> B{"Hash in<br/>ingest.log?"}:::proc
+    B -- "Yes" --> C["Skip (Idempotent)"]:::src
+    B -- "No" --> D["Atomic Topic Split<br/>& Lossless Compression"]:::proc
+    D --> E["Inject YAML Frontmatter<br/>(arch, tool, confidence, tags)"]:::proc
+    E --> F["Commit to wiki/<br/>& Update index.md"]:::store
+
+    F -.->|"1. Scan Frontmatter"| G["Orchestrator Lookup"]:::query
+    G -.->|"2. Load Matched Page"| H["Sub-Agent Context"]:::query
 ```
-The agent retrieves the exact article and returns a granular response with exact assembly opcodes, syscalls, and inline provenance tags.
 
-#### 5. Launch the Knowledge Graph
+### Wiki Page Schema
+Every compiled knowledge page adheres to a strict schema for deterministic filtering:
+
+```yaml
+---
+title: "ARM64 OLLVM Control Flow Flattening Recovery"
+category: "native-deobfuscation"
+target: "android-ndk"
+arch: ["arm64-v8a"]
+tool: ["ghidra", "unicorn"]
+confidence: "high"
+tags: ["ollvm", "cff", "symbolic-emulation", "dispatcher"]
+sources: ["raw_targets/ollvm-notes.md"]
+last_updated: "2026-11-04"
+---
+```
+
+---
+
+## Multi-Agent Execution Pipeline
+
+When analyzing a target binary, the orchestrator coordinates specialized sub-agents across static and dynamic boundaries:
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User
+    participant Orch as Orchestrator Agent
+    participant Wiki as LLM Wiki (wiki/)
+    participant Java as Java/Smali Sub-Agent
+    participant Nat as Native/Emulation Sub-Agent
+    participant MCP as MCP Tooling (Jadx / Ghidra / Unicorn)
+
+    User->>Orch: Analyze target.apk for root detection & encrypted C2
+    Orch->>Wiki: Query index.md (tags: rasp, jni, string-decryption)
+    Wiki-->>Orch: Return matching playbooks & JNI bridge patterns
+
+    Orch->>Java: Inspect Manifest, Java classes & native methods
+    Java->>MCP: jadx-headless-mcp (get_manifest, search_methods)
+    MCP-->>Java: Native method declarations + Smali fallback
+    Java-->>Orch: Flagged JNI library (libnative-shield.so)
+
+    Orch->>Nat: Analyze libnative-shield.so & recover encrypted strings
+    Nat->>MCP: Ghidra Headless + Unicorn Engine (emulate decryptor)
+    MCP-->>Nat: Decrypted C2 endpoints & syscall checks
+    Nat-->>Orch: Verified offsets, decrypted strings & hook targets
+
+    Orch-->>User: Structured RE Report with verified evidence
+```
+
+---
+
+## Lifecycle Management (Install, Update, Uninstall)
+
+### 1. Installation
+Clones the repository, registers sub-agents with **OpenCode** and **Claude Code**, symlinks `SKILLS.md`, and runs boot checks on required MCP servers (such as `jadx-headless-mcp`):
+
 ```bash
-python3 .kb/scripts/index_builder.py --open
+git clone https://github.com/fatalSec/LLM-RE-Wiki.git ~/.llm-re-wiki
+cd ~/.llm-re-wiki
+chmod +x scripts/*.sh
+./scripts/install.sh
 ```
 
+**What `install.sh` configures:**
+- Links agent profiles into `~/.config/opencode/agents/` and `~/.claude/agents/`.
+- Verifies availability of `jadx-headless-mcp`, `apktool`, `ghidra`, `radare2`, and Python `unicorn`/`capstone` bindings.
+- Initializes `raw_targets/ingest.log` if not already present.
+
+### 2. Updating
+Pulls the latest `wiki/` entries, `AGENTS.md` improvements, and `SKILLS.md` updates without modifying your local `raw_targets/` or custom notes:
+
+```bash
+~/.llm-re-wiki/scripts/update.sh
+```
+
+> **Tip:** Run `~/.llm-re-wiki/scripts/update.sh --check` to audit MCP server health and verify `/agents` registration after updating your CLI harness.
+
+### 3. Uninstallation
+Cleanly removes agent symlinks and harness registrations while prompting before deleting local `raw_targets/` data:
+
+```bash
+~/.llm-re-wiki/scripts/uninstall.sh
+```
 
 ---
 
-## Command Reference
+## Quickstart Workflow
 
-You can interact with your agent using natural language or these standardized commands:
-
-| Command | Purpose | Module / Script |
-|---|---|---|
-| `ingest <url>` | Crawl a URL into raw markdown and download assets | `.kb/ingest-protocol.md` |
-| `compile <file>` | Compile raw notes into structured wiki modules | `.kb/write-pipeline.md` |
-| `search <query>` | Query the KB with fast-path 2-turn retrieval | `.kb/read-protocol.md` |
-| `reindex` | Auto-build secondary indexes, validate links, and sync graph | `python3 .kb/scripts/index_builder.py` |
-| `graph` | Rebuild and open the interactive graph visualizer | `python3 .kb/scripts/graph_generator.py --open` |
-| `health-check` | Scan for dead links, orphan articles, and stale stubs | `python3 .kb/scripts/index_builder.py --check` |
-| `gap report` | Identify underdeveloped topics and undocumented areas | `.kb/maintenance.md` |
-| `contradictions` | List articles containing conflicting claims (`[X]`) | `.kb/maintenance.md` |
+1. **Ingest New Research:** Drop raw markdown writeups, disassembly snippets, or documentation into `raw_targets/` and run the ingestion prompt against your harness to compile atomic pages into `wiki/`.
+2. **Launch Analysis Session:** Open your target workspace in **OpenCode** or **Claude Code** where `AGENTS.md` is active.
+3. **Run Guided Triage:**
+   ```text
+   Follow PLAN.md to triage ./target.apk. Check wiki/ for known RASP patterns,
+   map JNI entry points via jadx-headless-mcp, and emulate any XOR/RC4 string
+   decryptors found in the native layer.
+   ```
 
 ---
 
-## Provenance Marker System
+## Contributing to the Wiki
 
-To eliminate hallucination and maintain clear source attribution, every factual statement carries an explicit provenance tag:
-
-| Marker | Meaning | Usage |
-|---|---|---|
-| `[V]` | **Verified** | Confirmed from cited primary source (implicit default for primary writeup facts) |
-| `[I]` | **Inferred** | Logical deduction from verified facts, not explicitly in the text |
-| `[U]` | **Unverified** | From community forums, unconfirmed blogs, or anecdotal writeups |
-| `[VS: Target]` | **Version-Specific** | Applies strictly to the specified tool/platform version (e.g., `[VS: Frida 16.x]`) |
-| `[X: see <ref>]` | **Contradicted** | Conflicting findings between multiple sources; requires investigation |
-| `[AI Synthesis]` | **Model Intelligence** | Pre-trained model reasoning, generic assembly patterns, or proposed bypass scripts |
-
----
-
-## Scripts & Tooling
-
-| Script / Tool | Purpose | Dependencies |
-|---|---|---|
-| `install.sh` | Idempotent one-line installer: agent detection (Claude, OpenCode, Pi), automated setup, and CLI provisioning. | Bash, `git`, `python3`, `curl` |
-| `update.sh` | Idempotent update script: fast-forwards upstream (`git pull --ff-only`), syncs venv, and validates KB health while protecting user notes. | Bash, `git` |
-| `uninstall.sh` | Idempotent safe uninstaller: provides options to keep research notes, export a timestamped backup archive, or wipe. | Bash, `tar` |
-| `bin/llm-re-wiki` | Optional lightweight shell wrapper: launches agents, delegates to lifecycle scripts, and runs KB tools. | Bash |
-| `.kb/scripts/crawl.py` | Web scraper with readability extraction, figure recovery, WebP-to-PNG conversion, and asset management. | `requests`, `beautifulsoup4`, `lxml`, `readability-lxml`, `markdownify`, `Pillow` |
-| `.kb/scripts/index_builder.py` | Fast deterministic indexer: scans YAML frontmatter across the vault to compile secondary indexes, validates link health, and updates the graph. | Standard Library (uses `PyYAML` if present) |
-| `.kb/scripts/graph_generator.py` | Parses Obsidian links (`[[wiki/...]]`), computes node weights, builds `graph_data.js`, and serves the visualizer. | Standard Library (uses `PyYAML` if present) |
-
-
-
----
-
-## Contributing & Community
-
-Contributions are welcome! If you have optimized schemas, new ingestion crawlers, or refined RE patterns:
-1. Fork the repository.
-2. Create a feature branch (`git checkout -b feature/new-schema`).
-3. Commit your changes and submit a Pull Request.
+When adding new reverse engineering techniques to `wiki/`:
+1. **Keep Pages Atomic:** One protection mechanism, file format structure, or bypass technique per Markdown file.
+2. **Optimize Token Density:** Strip conversational filler; favor structured tables, register mappings, instruction patterns, and minimal reproducible code/Frida snippets.
+3. **Complete Frontmatter:** Populate all YAML metadata fields (`arch`, `tool`, `confidence`, `tags`) and register the entry in `wiki/index.md`.
 
 ---
 
 ## License
 
-This project is licensed under the Apache 2.0 License. See [LICENSE](LICENSE) for details.
+Released under the [MIT License](LICENSE).
