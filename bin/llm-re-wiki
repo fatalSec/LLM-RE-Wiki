@@ -1,0 +1,444 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# LLM-RE-WIKI — Multi-Agent Knowledge Base Manager CLI
+# Supports: Claude Code, OpenCode, Pi, and Standalone Operation
+# ==============================================================================
+
+set -e
+
+# Terminal colors
+if [ -t 1 ]; then
+    BOLD="\033[1m"
+    GREEN="\033[0;32m"
+    BLUE="\033[0;34m"
+    YELLOW="\033[0;33m"
+    RED="\033[0;31m"
+    CYAN="\033[0;36m"
+    RESET="\033[0m"
+else
+    BOLD=""
+    GREEN=""
+    BLUE=""
+    YELLOW=""
+    RED=""
+    CYAN=""
+    RESET=""
+fi
+
+CONFIG_FILE="$HOME/.config/llm-re-wiki/config"
+
+resolve_vault_dir() {
+    # 1. If currently inside a vault
+    if [ -f "./AGENTS.md" ] && [ -d "./.kb" ] && [ -d "./knowledge_base" ]; then
+        pwd
+        return
+    fi
+
+    # 2. If config file specifies VAULT_DIR
+    if [ -f "$CONFIG_FILE" ]; then
+        # shellcheck disable=SC1090
+        . "$CONFIG_FILE"
+        if [ -n "$VAULT_DIR" ] && [ -d "$VAULT_DIR" ]; then
+            echo "$VAULT_DIR"
+            return
+        fi
+    fi
+
+    # 3. If running from script directory inside repo (e.g. /path/to/repo/bin/llm-re-wiki)
+    SOURCE="${BASH_SOURCE[0]}"
+    while [ -h "$SOURCE" ]; do
+        DIR="$(cd -P "$(dirname "$SOURCE")" >/dev/null 2>&1 && pwd)"
+        SOURCE="$(readlink "$SOURCE")"
+        [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+    done
+    SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")/.." >/dev/null 2>&1 && pwd)"
+    if [ -f "$SCRIPT_DIR/AGENTS.md" ] && [ -d "$SCRIPT_DIR/.kb" ]; then
+        echo "$SCRIPT_DIR"
+        return
+    fi
+
+    # 4. Standard default location
+    if [ -d "$HOME/llm-re-wiki" ]; then
+        echo "$HOME/llm-re-wiki"
+        return
+    fi
+
+    echo ""
+}
+
+VAULT_DIR="$(resolve_vault_dir)"
+
+get_python() {
+    if [ -n "$VAULT_DIR" ] && [ -x "$VAULT_DIR/.kb/scripts/.venv/bin/python3" ]; then
+        echo "$VAULT_DIR/.kb/scripts/.venv/bin/python3"
+    elif command -v python3 >/dev/null 2>&1; then
+        echo "python3"
+    else
+        echo ""
+    fi
+}
+
+show_banner() {
+    printf "${CYAN}${BOLD}"
+    cat << "EOF"
+  _      _      __  __        _____  ______      __          _______ _  _______ 
+ | |    | |    |  \/  |      |  __ \|  ____|     \ \        / /_   _| |/ /_   _|
+ | |    | |    | \  / |______| |__) | |__ ______  \ \  /\  / /  | | | ' /  | |  
+ | |    | |    | |\/| |______|  _  /|  __|______|  \ \/  \/ /   | | |  <   | |  
+ | |____| |____| |  | |      | | \ \| |____         \  /\  /   _| |_| . \ _| |_ 
+ |______|______|_|  |_|      |_|  \_\______|         \/  \/   |_____|_|\_\_____|
+EOF
+    printf "${RESET}"
+    echo "  Universal AI Reverse Engineering Knowledge Base Manager"
+    echo ""
+}
+
+show_help() {
+    show_banner
+    echo "Usage: llm-re-wiki <command> [arguments]"
+    echo ""
+    echo "Agent Launchers:"
+    echo "  run [agent]       Launch configured AI Agent (claude | opencode | pi) in the vault"
+    echo "  claude            Shortcut: run Claude Code in vault"
+    echo "  opencode          Shortcut: run OpenCode in vault"
+    echo "  pi                Shortcut: run Pi in vault"
+    echo ""
+    echo "Knowledge Base Commands:"
+    echo "  graph [--open]    Generate interactive knowledge graph visualizer"
+    echo "  health, check     Scan KB for dead links, orphan articles, and integrity"
+    echo "  reindex           Rebuild secondary indexes and sync knowledge graph"
+    echo "  ingest <url>      Crawl URL into raw inbox (images, diagrams, markdown)"
+    echo "  path              Print the active vault directory path"
+    echo ""
+    echo "Maintenance & Lifecycle:"
+    echo "  update            Safely update protocols, schemas & tools (protects notes)"
+    echo "  uninstall         Safely uninstall CLI and/or remove vault with backup"
+    echo "  help, -h, --help  Show this help message"
+    echo ""
+    if [ -n "$VAULT_DIR" ]; then
+        printf "Active Vault: %b%s%b\n\n" "$GREEN" "$VAULT_DIR" "$RESET"
+    else
+        printf "Active Vault: %bNot configured (run installer or set ~/.config/llm-re-wiki/config)%b\n\n" "$YELLOW" "$RESET"
+    fi
+}
+
+cmd_path() {
+    if [ -z "$VAULT_DIR" ]; then
+        echo "Error: Vault directory not found." >&2
+        exit 1
+    fi
+    echo "$VAULT_DIR"
+}
+
+cmd_run() {
+    local target_agent="$1"
+
+    if [ -z "$VAULT_DIR" ]; then
+        printf "${RED}Error: Vault directory not found.${RESET}\n" >&2
+        printf "Please run the installer or set VAULT_DIR in %s\n" "$CONFIG_FILE" >&2
+        exit 1
+    fi
+
+    # If no agent passed, detect installed or ask
+    if [ -z "$target_agent" ]; then
+        local claude_ok=0
+        local opencode_ok=0
+        local pi_ok=0
+
+        command -v claude >/dev/null 2>&1 && claude_ok=1
+        command -v opencode >/dev/null 2>&1 && opencode_ok=1
+        command -v pi >/dev/null 2>&1 && pi_ok=1
+
+        local total_detected=$((claude_ok + opencode_ok + pi_ok))
+
+        if [ "$total_detected" -eq 1 ]; then
+            [ "$claude_ok" -eq 1 ] && target_agent="claude"
+            [ "$opencode_ok" -eq 1 ] && target_agent="opencode"
+            [ "$pi_ok" -eq 1 ] && target_agent="pi"
+        elif [ "$total_detected" -gt 1 ]; then
+            echo "Multiple AI agents detected. Choose which one to launch:"
+            [ "$claude_ok" -eq 1 ] && echo "  1) Claude Code (claude)"
+            [ "$opencode_ok" -eq 1 ] && echo "  2) OpenCode (opencode)"
+            [ "$pi_ok" -eq 1 ] && echo "  3) Pi (pi)"
+            printf "Select agent: "
+            read -r choice < /dev/tty || choice="1"
+            case "$choice" in
+                1|claude) target_agent="claude" ;;
+                2|opencode) target_agent="opencode" ;;
+                3|pi) target_agent="pi" ;;
+                *) target_agent="claude" ;;
+            esac
+        else
+            echo "No agent binaries (claude, opencode, pi) found in PATH."
+            echo "You can launch your agent manually inside: $VAULT_DIR"
+            exit 1
+        fi
+    fi
+
+    case "$target_agent" in
+        claude)
+            if ! command -v claude >/dev/null 2>&1; then
+                printf "${RED}Error: 'claude' CLI is not installed or not in PATH.${RESET}\n"
+                echo "Install Claude Code: npm install -g @anthropic-ai/claude-code"
+                exit 1
+            fi
+            printf "${GREEN}Launching Claude Code in: %s${RESET}\n" "$VAULT_DIR"
+            cd "$VAULT_DIR" && exec claude "${@:2}"
+            ;;
+        opencode)
+            if ! command -v opencode >/dev/null 2>&1; then
+                printf "${RED}Error: 'opencode' CLI is not installed or not in PATH.${RESET}\n"
+                exit 1
+            fi
+            printf "${GREEN}Launching OpenCode in: %s${RESET}\n" "$VAULT_DIR"
+            cd "$VAULT_DIR" && exec opencode "${@:2}"
+            ;;
+        pi)
+            if ! command -v pi >/dev/null 2>&1; then
+                printf "${RED}Error: 'pi' CLI is not installed or not in PATH.${RESET}\n"
+                exit 1
+            fi
+            printf "${GREEN}Launching Pi in: %s${RESET}\n" "$VAULT_DIR"
+            cd "$VAULT_DIR" && exec pi "${@:2}"
+            ;;
+        *)
+            printf "${RED}Unknown agent: %s${RESET}. Supported agents: claude, opencode, pi\n" "$target_agent"
+            exit 1
+            ;;
+    esac
+}
+
+cmd_graph() {
+    local py
+    py="$(get_python)"
+    if [ -z "$py" ]; then
+        echo "Error: Python 3 not found." >&2
+        exit 1
+    fi
+    "$py" "$VAULT_DIR/.kb/scripts/graph_generator.py" --open "$@"
+}
+
+cmd_health() {
+    local py
+    py="$(get_python)"
+    if [ -z "$py" ]; then
+        echo "Error: Python 3 not found." >&2
+        exit 1
+    fi
+    "$py" "$VAULT_DIR/.kb/scripts/index_builder.py" --check "$@"
+}
+
+cmd_reindex() {
+    local py
+    py="$(get_python)"
+    if [ -z "$py" ]; then
+        echo "Error: Python 3 not found." >&2
+        exit 1
+    fi
+    "$py" "$VAULT_DIR/.kb/scripts/index_builder.py" "$@"
+}
+
+cmd_ingest() {
+    if [ -z "$1" ]; then
+        echo "Usage: llm-re-wiki ingest <url> [options]"
+        exit 1
+    fi
+    local py
+    py="$(get_python)"
+    if [ -z "$py" ]; then
+        echo "Error: Python 3 not found." >&2
+        exit 1
+    fi
+    cd "$VAULT_DIR" && "$py" "$VAULT_DIR/.kb/scripts/crawl.py" "$@"
+}
+
+cmd_update() {
+    printf "${BOLD}${BLUE}=== LLM-RE-WIKI Safe Update Pipeline ===${RESET}\n\n"
+    if [ -z "$VAULT_DIR" ] || [ ! -d "$VAULT_DIR/.git" ]; then
+        printf "${RED}Error: Vault directory %s is not a valid git repository.${RESET}\n" "$VAULT_DIR"
+        exit 1
+    fi
+
+    cd "$VAULT_DIR"
+    local current_branch
+    current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "main")"
+
+    printf "[*] Active Vault: %s\n" "$VAULT_DIR"
+    printf "[*] Current Branch: %s\n" "$current_branch"
+
+    # Step 1: Check for modified tracked files
+    local has_unstaged=0
+    if ! git diff-index --quiet HEAD -- 2>/dev/null; then
+        has_unstaged=1
+    fi
+
+    if [ "$has_unstaged" -eq 1 ]; then
+        printf "${YELLOW}[!] Working directory contains modifications. Creating safety stash...${RESET}\n"
+        git stash push -m "llm-re-wiki-auto-update-$(date +%Y%m%d_%H%M%S)"
+    fi
+
+    # Step 2: Pull latest updates from remote
+    printf "[*] Fetching updates from origin/%s...\n" "$current_branch"
+    if git pull --rebase origin "$current_branch"; then
+        printf "${GREEN}[✓] Successfully updated repository to latest upstream.${RESET}\n"
+    else
+        printf "${RED}[X] Git pull encountered conflicts. Restoring previous state...${RESET}\n"
+        [ "$has_unstaged" -eq 1 ] && git stash pop || true
+        exit 1
+    fi
+
+    # Step 3: Pop stash if we stashed
+    if [ "$has_unstaged" -eq 1 ]; then
+        printf "[*] Restoring local modifications from safety stash...\n"
+        git stash pop || printf "${YELLOW}[!] Note: Conflict during stash pop; inspect with 'git status'.${RESET}\n"
+    fi
+
+    # Step 4: Update python venv if present
+    if [ -d "$VAULT_DIR/.kb/scripts/.venv" ]; then
+        printf "[*] Updating Python virtual environment dependencies...\n"
+        "$VAULT_DIR/.kb/scripts/.venv/bin/pip" install -q --upgrade pip 2>/dev/null || true
+        "$VAULT_DIR/.kb/scripts/.venv/bin/pip" install -q -r "$VAULT_DIR/.kb/scripts/requirements.txt"
+        printf "${GREEN}[✓] Dependencies updated.${RESET}\n"
+    fi
+
+    # Step 5: Rebuild secondary indexes and run health check
+    printf "[*] Rebuilding secondary indexes and verifying KB integrity...\n"
+    local py
+    py="$(get_python)"
+    "$py" "$VAULT_DIR/.kb/scripts/index_builder.py"
+    "$py" "$VAULT_DIR/.kb/scripts/index_builder.py" --check
+
+    printf "\n${GREEN}${BOLD}[✓] LLM-RE-WIKI update completed successfully!${RESET}\n"
+    printf "Your research notes in ${CYAN}%s/knowledge_base/${RESET} are safe and preserved.\n" "$VAULT_DIR"
+}
+
+cmd_uninstall() {
+    printf "${BOLD}${RED}=== LLM-RE-WIKI Safe Uninstaller ===${RESET}\n\n"
+
+    echo "This will guide you through removing or archiving LLM-RE-WIKI."
+    echo ""
+    echo "Options:"
+    echo "  1) Keep Knowledge Base notes (${VAULT_DIR}/knowledge_base/)"
+    echo "     Only remove the global CLI wrapper (~/.local/bin/llm-re-wiki) and configs."
+    echo "  2) Create a full backup archive, then remove the vault and CLI wrapper."
+    echo "  3) Complete wipe (irreversibly deletes vault directory and CLI wrapper)."
+    echo "  4) Cancel."
+    echo ""
+
+    local choice=""
+    if [ -t 0 ]; then
+        read -r -p "Enter choice [1-4, default: 4]: " choice
+    elif [ -e /dev/tty ]; then
+        read -r -p "Enter choice [1-4, default: 4]: " choice < /dev/tty
+    else
+        echo "Non-interactive uninstall requires manual execution. Aborted."
+        exit 1
+    fi
+
+    choice="${choice:-4}"
+
+    case "$choice" in
+        1)
+            printf "\n[*] Removing global CLI wrapper and configuration...\n"
+            rm -f "$HOME/.local/bin/llm-re-wiki"
+            rm -rf "$HOME/.config/llm-re-wiki"
+            printf "${GREEN}[✓] CLI removed. Your knowledge base remains intact at: %s${RESET}\n" "$VAULT_DIR"
+            ;;
+        2)
+            local timestamp
+            timestamp="$(date +%Y%m%d_%H%M%S)"
+            local backup_file="$HOME/llm-re-wiki-backup-${timestamp}.tar.gz"
+            printf "\n[*] Creating archive at: %s...\n" "$backup_file"
+            tar -czf "$backup_file" -C "$(dirname "$VAULT_DIR")" "$(basename "$VAULT_DIR")"
+            printf "${GREEN}[✓] Backup archive created: %s${RESET}\n" "$backup_file"
+
+            printf "[*] Removing vault directory: %s...\n" "$VAULT_DIR"
+            rm -rf "$VAULT_DIR"
+            rm -f "$HOME/.local/bin/llm-re-wiki"
+            rm -rf "$HOME/.config/llm-re-wiki"
+            printf "${GREEN}[✓] LLM-RE-WIKI uninstalled successfully. Your archive is stored at: %s${RESET}\n" "$backup_file"
+            ;;
+        3)
+            printf "\n${RED}${BOLD}WARNING: This will permanently delete %s and all research notes!${RESET}\n" "$VAULT_DIR"
+            printf "Type ${BOLD}DELETE${RESET} to confirm: "
+            local confirm=""
+            if [ -t 0 ]; then
+                read -r confirm
+            elif [ -e /dev/tty ]; then
+                read -r confirm < /dev/tty
+            fi
+
+            if [ "$confirm" = "DELETE" ]; then
+                printf "[*] Deleting %s...\n" "$VAULT_DIR"
+                rm -rf "$VAULT_DIR"
+                rm -f "$HOME/.local/bin/llm-re-wiki"
+                rm -rf "$HOME/.config/llm-re-wiki"
+                printf "${GREEN}[✓] LLM-RE-WIKI completely removed.${RESET}\n"
+            else
+                printf "${YELLOW}Confirmation failed. Uninstall cancelled.${RESET}\n"
+                exit 0
+            fi
+            ;;
+        *)
+            echo "Uninstallation cancelled."
+            exit 0
+            ;;
+    esac
+}
+
+# --- Main Dispatcher ---
+
+case "$1" in
+    path)
+        cmd_path
+        ;;
+    run)
+        shift
+        cmd_run "$@"
+        ;;
+    claude)
+        shift
+        cmd_run claude "$@"
+        ;;
+    opencode)
+        shift
+        cmd_run opencode "$@"
+        ;;
+    pi)
+        shift
+        cmd_run pi "$@"
+        ;;
+    graph)
+        shift
+        cmd_graph "$@"
+        ;;
+    health|check)
+        shift
+        cmd_health "$@"
+        ;;
+    reindex)
+        shift
+        cmd_reindex "$@"
+        ;;
+    ingest)
+        shift
+        cmd_ingest "$@"
+        ;;
+    update)
+        cmd_update
+        ;;
+    uninstall)
+        cmd_uninstall
+        ;;
+    help|-h|--help)
+        show_help
+        ;;
+    "")
+        show_help
+        ;;
+    *)
+        printf "${RED}Unknown command: %s${RESET}\n\n" "$1"
+        show_help
+        exit 1
+        ;;
+esac

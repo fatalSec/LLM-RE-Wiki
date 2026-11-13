@@ -113,11 +113,55 @@ Open `knowledge_base/graph/index.html` in any browser to explore an interactive,
 
 ## Quickstart
 
-### Prerequisites
-- **Python 3.9+**
-- An AI coding agent that respects project instructions (e.g., [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview), [Cursor](https://cursor.com/), [Antigravity](https://github.com/google))
+### One-Line Installation
 
-### 1. Clone & Setup
+Install and configure LLM-RE-WIKI in seconds with the universal installer:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/fatalSec/LLM-RE-WIKI/main/install.sh | bash
+```
+
+The installer automatically:
+- Verifies system prerequisites (`git`, `python3 3.9+`, `curl`).
+- Probes for installed AI coding agents: **Claude Code** (`claude`), **OpenCode** (`opencode`), and **Pi** (`pi`).
+- Prompts you to choose which agent(s) to configure (or run non-interactively with `-y` / `--yes`).
+- Clones the repository, provisions `.kb/scripts/.venv`, and runs the self-test suite.
+- Installs the global `llm-re-wiki` management CLI into `~/.local/bin/`.
+
+#### Launching Your Agent
+
+Once installed, launch the KB custodian in your preferred agent:
+
+```bash
+# Claude Code (auto-bridges via CLAUDE.md)
+llm-re-wiki claude     # or: cd ~/llm-re-wiki && claude
+
+# OpenCode (auto-bridges via AGENTS.md)
+llm-re-wiki opencode   # or: cd ~/llm-re-wiki && opencode
+
+# Pi (auto-bridges via AGENTS.md)
+llm-re-wiki pi         # or: cd ~/llm-re-wiki && pi
+```
+
+#### Global CLI Management (`llm-re-wiki`)
+
+| Command | Action |
+|---|---|
+| `llm-re-wiki run [agent]` | Launch configured AI agent inside the vault |
+| `llm-re-wiki graph` | Rebuild and open the interactive knowledge graph visualizer |
+| `llm-re-wiki health` | Scan KB for dead links, orphan articles, and integrity |
+| `llm-re-wiki reindex` | Rebuild secondary indexes (`_tools-index`, `_ttp-index`, etc.) |
+| `llm-re-wiki ingest <url>` | Crawl a writeup/blog into the raw inbox with images |
+| `llm-re-wiki update` | **Safely** update schemas, protocols & tools (strictly protects your research notes) |
+| `llm-re-wiki uninstall` | Safely remove CLI wrapper or vault with optional backup archive |
+
+---
+
+### Manual Setup (Step-by-Step)
+
+If you prefer manual setup without the global CLI:
+
+#### 1. Clone & Setup
 ```bash
 git clone https://github.com/fatalSec/LLM-RE-WIKI.git
 cd LLM-RE-WIKI
@@ -127,30 +171,31 @@ python3 -m venv .kb/scripts/.venv
 .kb/scripts/.venv/bin/pip install -r .kb/scripts/requirements.txt
 ```
 
-### 2. Crawl a Technical Writeup
+#### 2. Crawl a Technical Writeup
 ```bash
 .kb/scripts/.venv/bin/python .kb/scripts/crawl.py "https://example.com/dexprotector-analysis"
 ```
 *Output: `knowledge_base/raw/feeds/dexprotector-analysis.md` and downloaded images in `knowledge_base/raw/assets/`.*
 
-### 3. Compile with Your AI Agent
-Open the repository in your agent (e.g., Cursor or Claude Code) and run:
+#### 3. Compile with Your AI Agent
+Open the repository in your agent (e.g., Claude Code, OpenCode, Pi, or Cursor) and run:
 ```text
 compile dexprotector-analysis.md
 ```
-The agent reads `AGENTS.md`, loads the schema, writes the compiled wiki article(s), and automatically updates indexes and graph data.
+The agent reads `AGENTS.md` (or `CLAUDE.md`), loads the schema, writes the compiled wiki article(s), and automatically updates indexes and graph data.
 
-### 4. Query the Knowledge Base
+#### 4. Query the Knowledge Base
 Ask your agent any technical question:
 ```text
 search "How does DexProtector detect Frida linker trampolines?"
 ```
 The agent retrieves the exact article and returns a granular response with exact assembly opcodes, syscalls, and inline provenance tags.
 
-### 5. Launch the Knowledge Graph
+#### 5. Launch the Knowledge Graph
 ```bash
 python3 .kb/scripts/index_builder.py --open
 ```
+
 
 ---
 
@@ -188,11 +233,14 @@ To eliminate hallucination and maintain clear source attribution, every factual 
 
 ## Scripts & Tooling
 
-| Script | Purpose | Dependencies |
+| Script / Tool | Purpose | Dependencies |
 |---|---|---|
+| `install.sh` | Universal one-line installer: agent detection (Claude, OpenCode, Pi), automated setup, and CLI provisioning. | Bash, `git`, `python3`, `curl` |
+| `bin/llm-re-wiki` | Global manager CLI: agent launchers, safe updates (stash/pull), safe uninstall (backup archive), and health checks. | Bash |
 | `.kb/scripts/crawl.py` | Web scraper with readability extraction, figure recovery, WebP-to-PNG conversion, and asset management. | `requests`, `beautifulsoup4`, `lxml`, `readability-lxml`, `markdownify`, `Pillow` |
 | `.kb/scripts/index_builder.py` | Fast deterministic indexer: scans YAML frontmatter across the vault to compile `_tools-index`, `_snippets-index`, `_patterns-index`, `_ttp-index`, validates link health, and updates the graph. | Standard Library (uses `PyYAML` if present) |
 | `.kb/scripts/graph_generator.py` | Parses Obsidian links (`[[wiki/...]]`), computes node weights, builds `graph_data.js`, and serves the visualizer. | Standard Library (uses `PyYAML` if present) |
+
 
 ---
 
