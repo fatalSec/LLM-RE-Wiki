@@ -13,17 +13,18 @@ type: research-paper
 topic: wiki/<topic>/_index
 source: <URL or DOI>
 tags: [tag1, tag2]
-authors: [<Last, First et al.>]
-published: "<Venue, Year>"
+authors: [Smith, John, Doe, Jane et al.]
+published: "USENIX Security 2024"
 doi_url: <link>
 arch: [arm64, arm32, x86_64, all]
 attack_ttps: [T1xxx]
 complexity: intermediate | advanced
 completeness: stub | partial | complete
 last_verified: YYYY-MM-DD
-tool_versions: [<if applicable>]
+tool_versions: [<tool x.x>]
 llm_summary: "<A dense, 1-2 sentence summary of the paper's core findings and practical applicability to Reverse Engineering for direct LLM retrieval>"
 ---
+<!-- Note: Omit tool_versions, arch, or attack_ttps if not referenced. Do not leave placeholder text. -->
 
 # <Paper Title>
 
@@ -42,15 +43,15 @@ llm_summary: "<A dense, 1-2 sentence summary of the paper's core findings and pr
 - **Target Dataset & Environment:** <Number of APKs/binaries analyzed, Android versions, test devices> [V]
 - **Frameworks & Tools Built:** <Names, open-source status, and architecture of tools introduced> [V]
 
-## 4. Low-Level Invariants & Empirical Findings [V]
+## 4. Low-Level Invariants & Empirical Findings [V] {#empirical-findings}
 <!-- Capture concrete formulas, detection rates, performance overheads, or memory invariants -->
-| Metric / Invariant | Evaluated Value | Baseline / Ground Truth | Significance / Notes |
-|---|---|---|---|
-| Detection Accuracy | `98.4%` | `72.1%` (Commercial RASP) | True positive rate on obfuscated samples |
-| Runtime Overhead | `< 4.2ms` | Standard execution | Tracing overhead per basic block |
-| Core Syscall / API | `sys_ptrace` | `PTRACE_TRACEME` | Specific hook point analyzed |
+| Metric / Invariant | Evaluated Value | Technical Significance & Baseline Context |
+|---|---|---|
+| Detection Accuracy | `98.4%` | True positive rate on obfuscated samples (Baseline: 72.1% on commercial RASP) |
+| Runtime Overhead | `< 4.2ms` | Tracing overhead per basic block execution |
+| Core Syscall / API | `sys_ptrace` | `PTRACE_TRACEME` hook point analyzed for anti-analysis detection |
 
-## 5. Practical Reverse Engineering Applicability
+## 5. Practical Reverse Engineering Applicability {#poc}
 <!-- Most important section for this KB: translating academic theory into actionable RE techniques -->
 - **Actionable Techniques:** <Concrete tools, scripts, or heuristic rules that can be used immediately> [V/I]
 - **Informed Wiki Topics:** Which security mechanisms or attack patterns this enhances: [[wiki/topic/article]]
@@ -76,7 +77,7 @@ llm_summary: "<A dense, 1-2 sentence summary of the paper's core findings and pr
 | `authors` | Yes | YAML array of author names (e.g. `[Smith, John, Doe, Jane et al.]`) |
 | `published` | Yes | Publication venue and year (e.g. `"USENIX Security 2024"`, `"IEEE S&P 2023"`) |
 | `doi_url` | Conditional | DOI link or ArXiv URL. Required if paper is indexed. |
-| `attack_ttps` | Conditional | Mapped MITRE ATT&CK TTPs evaluated in the paper |
+| `attack_ttps` | Conditional | Mapped MITRE ATT&CK TTPs evaluated in the paper. Omit if unmapped. |
 
 ### Content Rules
 - **Focus on RE Applicability:** Academic papers often emphasize formal proofs; extract the concrete offsets, algorithms, and practical tooling.

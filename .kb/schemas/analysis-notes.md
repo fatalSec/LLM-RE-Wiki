@@ -21,10 +21,11 @@ arch: [arm64, arm32, x86_64]
 complexity: intermediate | advanced
 completeness: stub | partial | complete
 last_verified: YYYY-MM-DD
-tool_versions: [<tool x.x, if applicable>]
-attack_ttps: [<T-IDs, if mapped>]
+tool_versions: [Frida 16.x, GDB 12]
+attack_ttps: [T1629.003]
 llm_summary: "<A dense, 1-2 sentence summary of analysis findings, dead-ends, and working bypasses for direct LLM retrieval>"
 ---
+<!-- Note: Omit tool_versions, arch, or attack_ttps if not referenced. Do not leave placeholder text. -->
 
 # <Target Description or Subsystem> — Analysis Notes
 
@@ -35,24 +36,28 @@ llm_summary: "<A dense, 1-2 sentence summary of analysis findings, dead-ends, an
 *   **Analysis Status:** in-progress | complete | abandoned
 *   **Bypass Status:** complete | partial | failed | not-attempted
 
-## 2. Low-Level Invariants & Verified Observations [V]
+## 2. Low-Level Invariants & Verified Observations [V] {#observations}
 <!-- Verbatim offsets, opcodes, memory layouts, and symbols directly confirmed during analysis -->
-| Metric / Target | Attribute | Observed Value | Significance / Notes |
-|---|---|---|---|
-| Memory Offset | `0x0001a690` | Background monitoring thread | Spawns status checker |
-| Syscall / Symbol | `openat` / `read` | `/proc/self/status` | Byte-per-byte TracerPid read |
-| Register State | `W0` == `0x1` | Anti-Frida trigger gate | Return check for thread name |
+| Invariant / Target | Observed Primitive | Technical Significance & Context |
+|---|---|---|
+| Memory Offset | `0x0001a690` | Background monitoring thread entrypoint spawning status checker |
+| Syscall / Symbol | `openat`, `read` | Byte-per-byte TracerPid read from `/proc/self/status` |
+| Register State | `W0` == `0x1` | Anti-Frida trigger gate return check verifying thread name |
 
 - **Step-by-Step Observations:**
   - Observed action 1 [V]
   - Observed action 2 [V]
 
-## 3. Dead Ends & Failed Approaches
+<!-- MANDATORY: Transcribe screenshots, debugger output, or IDA views verbatim where they appear -->
+> **[Image extracted — TOOL_OUTPUT | confidence: high]**
+> Debugger Trace: `0x0001a690: ldr x0, [sp, #8] ; verification branch`
+
+## 3. Dead Ends & Failed Approaches {#dead-ends}
 <!-- CRITICAL: Prevents repeating failed work in subsequent analysis sessions -->
-| Attempted Approach | Specific Failure Symptom | Why It Failed | Confidence |
-|---|---|---|---|
-| Hooking `libc.so!read` | App instantly crashes (SIGSEGV) | Syscall called inline via SVC instruction, not libc export | High |
-| Patching `.rodata` string | Checksum verification aborts | Second thread verifies SHA256 of text segment | High |
+| Attempted Approach | Specific Failure Symptom | Why It Failed & Confidence |
+|---|---|---|
+| Hooking `libc.so!read` | App instantly crashes (SIGSEGV) | Syscall called inline via SVC instruction, not libc export (High confidence) |
+| Patching `.rodata` string | Checksum verification aborts | Second thread verifies SHA256 of text segment at runtime (High confidence) |
 
 ## 4. Working Techniques & Proof-of-Concepts {#working-techniques}
 ```<language>
@@ -83,7 +88,7 @@ llm_summary: "<A dense, 1-2 sentence summary of analysis findings, dead-ends, an
 | `analysis_date` | Yes | Date analysis was conducted (YYYY-MM-DD) |
 | `status` | Yes | `in-progress` \| `complete` \| `abandoned` |
 | `bypass_status` | Yes | `complete` \| `partial` \| `failed` \| `not-attempted` — crucial for retrieval routing |
-| `arch` | Conditional | Architecture tested (`[arm64, arm32, x86_64]`) |
+| `arch` | Conditional | Architecture tested (`[arm64, arm32, x86_64]`). Omit if unapplicable. |
 
 ### Content Rules
 - **Dead Ends is the Most Valuable Section:** Explicitly record what did *not* work and *why* to prevent wasting tokens or hours re-testing dead avenues.

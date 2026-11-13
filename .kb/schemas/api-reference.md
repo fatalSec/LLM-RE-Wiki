@@ -14,15 +14,16 @@ type: api-doc
 topic: wiki/<topic>/_index
 source: <URL>
 tags: [tag1, tag2]
-sdk_library_version: "<x.x.x>"
+sdk_library_version: "16.2.1"
 official_source: <URL>
 arch: [arm64, arm32, x86_64, all]
 complexity: intermediate | advanced
 completeness: stub | partial | complete
 last_verified: YYYY-MM-DD
-tool_versions: [<tool x.x>]
+tool_versions: [Frida 16.x]
 llm_summary: "<A dense summary of the API class, core purpose, and primary RE use case for direct LLM retrieval>"
 ---
+<!-- Note: Omit arch or tool_versions if not referenced. Do not leave placeholder text. -->
 
 # <API or SDK Name> — Reference & Usage Patterns
 
@@ -33,10 +34,10 @@ llm_summary: "<A dense summary of the API class, core purpose, and primary RE us
 *   **When NOT to Use:** <Negative condition, e.g. 'Targeting 32-bit ARM architectures; use ArmWriter instead.'> [VS: AArch64]
 
 ## 2. Architecture & Selection Guide
-| Target Scenario / Architecture | Use This API Class | Instead of | Technical Rationale |
-|---|---|---|---|
-| AArch64 (64-bit ARM) | `Arm64Writer` | `ArmWriter` | Generates native 64-bit instruction encodings |
-| Memory Tracing | `Stalker` | `Interceptor` | Complete basic block tracing with minimal hook overhead |
+| Target Scenario / Arch | Recommended API Class | Technical Rationale & Trade-offs |
+|---|---|---|
+| AArch64 (64-bit ARM) | `Arm64Writer` | Generates native 64-bit instruction encodings directly |
+| Memory Tracing | `Stalker` | Complete basic block tracing with minimal hook overhead vs Interceptor |
 
 ---
 
@@ -60,7 +61,7 @@ methodName(param: Type): ReturnType
 
 ## 4. Complete Usage Patterns & Code Walkthroughs {#patterns}
 
-### Pattern 1: <Name of Task, e.g. Hooking Native Export & Spoofing Return>
+### Pattern 1: <Name of Task, e.g. Hooking Native Export & Spoofing Return> {#pattern-1}
 ```javascript
 // Complete, runnable code snippet demonstrating the API usage verbatim
 Interceptor.attach(Module.getExportByName(null, 'open'), {
@@ -102,7 +103,7 @@ Interceptor.attach(Module.getExportByName(null, 'open'), {
 |---|---|---|
 | `sdk_library_version` | Yes | Target library version string (e.g. `"16.2.1"`) |
 | `official_source` | Yes | Direct link to official API docs or repository header file |
-| `arch` | Conditional | Supported architectures (`[arm64, arm32, x86_64, all]`) |
+| `arch` | Conditional | Supported architectures (`[arm64, arm32, x86_64, all]`). Omit if unapplicable. |
 
 ### Content Rules
 - **Signatures + Patterns Stay Together:** Never split signatures into a separate file from their practical code patterns.
