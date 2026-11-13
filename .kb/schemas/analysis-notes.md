@@ -1,7 +1,8 @@
 # Schema: Personal RE Notes / Analysis Notes
 
-> **Use when:** Source is first-person notes, live reverse engineering observations, or experimental lab logs.
+> **Use when:** Source is first-person notes, live reverse engineering observations, experimental lab logs, or a filed KB answer (`answer-*.md`).
 > **Common metadata:** See [_common-metadata.md](_common-metadata.md)
+> **Placeholders:** Everything in `<angle brackets>` is a placeholder. Replace it with values from the source, or delete the line. Never invent values.
 
 ---
 
@@ -11,70 +12,65 @@
 ---
 type: analysis-notes
 topic: wiki/<topic>/_index
-source: <filename or "personal lab notes">
-tags: [tag1, tag2]
-target: <package name, binary name, or target subsystem>
-analysis_date: YYYY-MM-DD
-status: in-progress | complete | abandoned
-bypass_status: complete | partial | failed | not-attempted
-arch: [arm64, arm32, x86_64]
-complexity: intermediate | advanced
-completeness: stub | partial | complete
-last_verified: YYYY-MM-DD
-tool_versions: [Frida 16.x, GDB 12]
-attack_ttps: [T1629.003]
-llm_summary: "<A dense, 1-2 sentence summary of analysis findings, dead-ends, and working bypasses for direct LLM retrieval>"
+sources: [<raw filename or "personal lab notes">]
+tags: [<tag>, <tag>]
+target: <package name, binary name, or subsystem>
+analysis_date: <YYYY-MM-DD>
+status: <in-progress | complete | abandoned>
+bypass_status: <complete | partial | failed | not-attempted>
+arch: [<arm64 | arm32 | x86_64>]
+complexity: <intermediate | advanced>
+completeness: <stub | partial | complete>
+last_verified: <YYYY-MM-DD>
+tool_versions: [<Tool x.y>]
+attack_ttps: [<T####.###>]
+llm_summary: "<Target + findings + what worked, key terms first, 1-2 sentences>"
 ---
-<!-- Note: Omit tool_versions, arch, or attack_ttps if not referenced. Do not leave placeholder text. -->
+<!-- Omit arch, tool_versions, or attack_ttps if the notes don't mention them. -->
 
-# <Target Description or Subsystem> — Analysis Notes
+# <Target or Subsystem> — Analysis Notes
 
-## 1. Analysis Status & Key Takeaways
-*   **[VERIFIED]** <Confirmed finding from dynamic or static testing> [V]
-*   **[DEAD-END]** <Approach that definitively failed + reason why> [V]
-*   **[HYPOTHESIS]** <Unconfirmed theory or pattern worth investigating> [I/U]
-*   **Analysis Status:** in-progress | complete | abandoned
-*   **Bypass Status:** complete | partial | failed | not-attempted
+## 1. Key Takeaways
+- **[VERIFIED]** <finding confirmed by static or dynamic testing>
+- **[DEAD-END]** <approach that failed, and why>
+- **[HYPOTHESIS]** <unconfirmed theory worth testing> [I]
 
-## 2. Low-Level Invariants & Verified Observations [V] {#observations}
-<!-- Verbatim offsets, opcodes, memory layouts, and symbols directly confirmed during analysis -->
-| Invariant / Target | Observed Primitive | Technical Significance & Context |
+## 2. Verified Observations {#observations}
+<!-- Verbatim offsets, opcodes, memory layouts, and symbols confirmed during analysis. -->
+| Invariant | Exact Value | Significance |
 |---|---|---|
-| Memory Offset | `0x0001a690` | Background monitoring thread entrypoint spawning status checker |
-| Syscall / Symbol | `openat`, `read` | Byte-per-byte TracerPid read from `/proc/self/status` |
-| Register State | `W0` == `0x1` | Anti-Frida trigger gate return check verifying thread name |
+| <offset / syscall / symbol / register state> | `<verbatim value>` | <what it means for the analysis> |
 
-- **Step-by-Step Observations:**
-  - Observed action 1 [V]
-  - Observed action 2 [V]
+- **Step-by-step:**
+  1. <observed action>
+  2. <observed action>
 
-<!-- MANDATORY: Transcribe screenshots, debugger output, or IDA views verbatim where they appear -->
-> **[Image extracted — TOOL_OUTPUT | confidence: high]**
-> Debugger Trace: `0x0001a690: ldr x0, [sp, #8] ; verification branch`
+<!-- MANDATORY: transcribe screenshots, debugger output, or IDA views where they appear. -->
+> **[Image extracted — <CATEGORY> | confidence: <high | low>]**
+> <verbatim transcription>
 
 ## 3. Dead Ends & Failed Approaches {#dead-ends}
-<!-- CRITICAL: Prevents repeating failed work in subsequent analysis sessions -->
-| Attempted Approach | Specific Failure Symptom | Why It Failed & Confidence |
+<!-- The most valuable section: stops anyone from repeating failed work. -->
+| Attempted Approach | Failure Symptom | Why It Failed (confidence) |
 |---|---|---|
-| Hooking `libc.so!read` | App instantly crashes (SIGSEGV) | Syscall called inline via SVC instruction, not libc export (High confidence) |
-| Patching `.rodata` string | Checksum verification aborts | Second thread verifies SHA256 of text segment at runtime (High confidence) |
+| <what was tried> | <crash, abort, no effect…> | <root cause> (<high / medium / low>) |
 
-## 4. Working Techniques & Proof-of-Concepts {#working-techniques}
+## 4. Working Techniques & PoCs {#working-techniques}
 ```<language>
-// Runnable code snippet, Frida script, or patch that succeeded in lab testing
+<runnable script or patch that worked, verbatim>
 ```
-*   **Context:** <Exact conditions and timing required for this snippet to work>
-*   **Caveats:** <Version dependencies, OS limitations, or stability concerns>
-*   **Tested On:** <Target device, OS version, architecture, and tool versions>
+- **Context:** <exact conditions and timing required>
+- **Caveats:** <version dependencies, OS limits, stability>
+- **Tested On:** <device, OS version, architecture, tool versions>
 
-## 5. Hypotheses & Follow-up Items [I/U]
-- **Hypothesis 1:** <Educated guess regarding protection mechanism and justification> [I]
-- **Testing Plan:** <Next step to validate or refute hypothesis>
+## 5. Hypotheses & Next Steps
+- **Hypothesis:** <educated guess and why> [I]
+- **Test Plan:** <how to confirm or refute it>
 
 ## 6. Scope Boundaries & Open Questions
-- **What This Article Does NOT Cover:** <Untested subsystems, architectures, or app versions>
-- **Open Questions:** <Unresolved behaviors or unexplored constructor functions>
-- **Related Articles:** [[wiki/patterns/<pattern>]] | [[wiki/techniques/<technique>]]
+- **Not Covered:** <untested subsystems, architectures, or app versions>
+- **Open Questions:** <unresolved behaviors> [U]
+- **Related:** [[wiki/<topic>/<article>#<anchor>|<label>]]
 ```
 
 ---
@@ -84,13 +80,14 @@ llm_summary: "<A dense, 1-2 sentence summary of analysis findings, dead-ends, an
 ### Schema-Specific Fields
 | Field | Required | Notes |
 |---|---|---|
-| `target` | Yes | Target package name, binary name, or target subsystem |
-| `analysis_date` | Yes | Date analysis was conducted (YYYY-MM-DD) |
+| `target` | Yes | Package name, binary name, or subsystem |
+| `analysis_date` | Yes | When the analysis was done (YYYY-MM-DD) |
 | `status` | Yes | `in-progress` \| `complete` \| `abandoned` |
-| `bypass_status` | Yes | `complete` \| `partial` \| `failed` \| `not-attempted` — crucial for retrieval routing |
-| `arch` | Conditional | Architecture tested (`[arm64, arm32, x86_64]`). Omit if unapplicable. |
+| `bypass_status` | Yes | `complete` \| `partial` \| `failed` \| `not-attempted` |
+| `arch` | Conditional | Only if native code was analyzed |
 
 ### Content Rules
-- **Dead Ends is the Most Valuable Section:** Explicitly record what did *not* work and *why* to prevent wasting tokens or hours re-testing dead avenues.
-- **Strict Provenance Separation:** Separate `[V]` verified observations from `[I/U]` hypotheses.
-- **Redaction:** Redact proprietary or sensitive client names if necessary, but keep package identifiers and technical symbols intact.
+- **Dead Ends matter most:** record what did *not* work and *why*.
+- **Keep observations and guesses apart:** verified observations go in §2; anything unconfirmed is marked `[I]` or `[U]`.
+- **Filed answers (`answer-*.md`):** keep every `[AI Synthesis]` marker exactly as filed; never upgrade it to verified.
+- **Redaction:** remove client names if needed, but keep package identifiers and technical symbols intact.

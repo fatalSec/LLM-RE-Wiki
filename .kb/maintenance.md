@@ -8,14 +8,24 @@
 
 ## 1. Health Check
 
-Run on command `health-check`. Scans the entire KB for structural issues. Report results directly to the user.
+Run on command `health-check`:
 
-### Check List
-1. **Dead `[[wiki links]]`**: Grep all markdown files for `[[...]]` links and verify each target file exists.
-2. **Orphan Articles**: Articles that are not linked from any topic `_index.md` or other wiki articles.
-3. **YAML Frontmatter Validation**: Check every article for required fields defined in `schemas/_common-metadata.md`: `type`, `topic`, `source`, `tags`, `complexity`, `completeness`, `last_verified`, `llm_summary`.
-4. **Stale stubs**: Articles with `completeness: stub` not updated in >14 days.
-5. **Unprocessed raw files**: Files in `knowledge_base/raw/feeds/` without `_processed` suffix.
+```bash
+python3 .kb/scripts/index_builder.py --check
+```
+
+Report its output to the user. It exits with code 1 if there are errors.
+
+### What It Checks
+| Check | Level | Meaning |
+|---|---|---|
+| Dead `[[wiki links]]` | **Error** | A link points to a file that doesn't exist |
+| Invalid frontmatter | **Error** | Missing any of: `type`, `topic`, `sources`, `tags`, `complexity`, `completeness`, `last_verified`, `llm_summary` — or a `type` that isn't one of the schema types |
+| Orphan articles | Note | No other article links to it (the generated master index doesn't count) |
+| No outgoing links | Note | The article doesn't link to any other article |
+| Uncompiled raw files | Note | Files in `knowledge_base/raw/feeds/` without the `_processed` suffix |
+
+For each error, fix the article (or ask the user), then re-run the check.
 
 ---
 
@@ -24,7 +34,7 @@ Run on command `health-check`. Scans the entire KB for structural issues. Report
 | Command | Action |
 |---|---|
 | `health-check` | Run the full check list (§1 above). |
-| `gap report` | Report dead links, stale stubs, and underdeveloped topics (<2 articles). |
+| `gap report` | Run the health check, then report underdeveloped topics (<2 articles in `_master-index.md`) and `completeness: stub` articles. |
 | `contradictions` | List all articles carrying `[X]` conflict markers. |
 
 ---

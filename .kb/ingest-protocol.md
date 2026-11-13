@@ -52,6 +52,7 @@ If the script exits with a non-zero status:
 
 | Error | Action |
 |---|---|
+| **`ALREADY INGESTED: <file>`** (exit code 2) | The URL is already in the inbox (compiled or not). Tell the user the existing file. Only re-crawl with `--force` if they ask (e.g. the page was updated). |
 | **HTTP 403 / bot protection** | Tell user: *"This page is blocked by bot protection. Use the Obsidian MarkDownload extension to manually crawl it, then place the `.md` file in `knowledge_base/raw/feeds/` and the images in `knowledge_base/raw/assets/<name>/`."* |
 | **Empty/short content** | The page is likely JavaScript-rendered (SPA). Same manual fallback as above. |
 | **Network/timeout error** | Ask user to verify the URL is correct and accessible. |

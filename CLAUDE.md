@@ -12,11 +12,12 @@ When the user asks you to perform an action, load ONLY the required instruction 
 
 | User Command / Trigger | Instructions to Load | Action |
 |---|---|---|
-| `search <query>` / "What does the wiki say about..." | `.kb/core-rules.md` → `.kb/read-protocol.md` | Search `knowledge_base/wiki/` and produce a Unified Technical Response with inline `[V]` / `[AI Synthesis]` markers. |
+| `search <query>` / "What does the wiki say about..." | `.kb/core-rules.md` → `.kb/read-protocol.md` | Two-step search (`rg` for specific terms, `_master-index.md` for broad questions), then produce a Unified Technical Response with inline `[V]` / `[AI Synthesis]` markers. |
+| `file answer` | `.kb/read-protocol.md` | Save the last answer, markers intact, to `knowledge_base/raw/feeds/answer-<slug>.md`. |
 | `compile <file>` / "Compile this raw file" | `.kb/core-rules.md` → `.kb/write-pipeline.md` → `.kb/schemas/<type>.md` | Extract technical invariants, offsets, opcodes, code snippets, and inlined image text. Compile to `knowledge_base/wiki/<topic>/<slug>.md`, then run index builder. |
 | `ingest <url>` | `.kb/ingest-protocol.md` | Run `.kb/scripts/crawl.py <url>` or extract web content into `knowledge_base/raw/`. |
-| `health-check` / `gap report` | `.kb/maintenance.md` | Run `python3 .kb/scripts/index_builder.py --check` and report dead links or orphans. |
-| `reindex` | — | Run `python3 .kb/scripts/index_builder.py` to regenerate all secondary indexes. |
+| `health-check` / `gap report` | `.kb/maintenance.md` | Run `python3 .kb/scripts/index_builder.py --check` and report errors and notes. |
+| `reindex` | — | Run `python3 .kb/scripts/index_builder.py` to regenerate `_master-index.md`, `_tools-index.md`, and `_ttp-index.md` (never edit them by hand). |
 | `graph` | — | Run `python3 .kb/scripts/graph_generator.py --open` to build and visualize the interactive knowledge graph. |
 
 ---

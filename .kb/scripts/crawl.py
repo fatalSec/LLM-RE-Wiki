@@ -531,6 +531,33 @@ def process_images(
     return downloaded
 
 
+def normalize_url(url: str) -> str:
+    """Normalizes a URL for duplicate detection (drops #fragment, trailing slash, scheme/host case)."""
+    parsed = urlparse(url.strip())
+    path = parsed.path.rstrip("/") or "/"
+    query = f"?{parsed.query}" if parsed.query else ""
+    return f"{parsed.scheme.lower()}://{parsed.netloc.lower()}{path}{query}"
+
+
+def find_existing_ingest(url: str, kb_root: Path) -> Path | None:
+    """Returns the raw file that already holds this URL (compiled or not), if any."""
+    feeds = kb_root / "knowledge_base" / "raw" / "feeds"
+    if not feeds.is_dir():
+        return None
+    wanted = normalize_url(url)
+    for raw_file in sorted(feeds.glob("*.md")):
+        try:
+            with raw_file.open(encoding="utf-8") as fh:
+                head = [next(fh, "") for _ in range(3)]
+        except OSError:
+            continue
+        for line in head:
+            match = re.match(r"<!--\s*source_url:\s*(\S+)\s*-->", line.strip())
+            if match and normalize_url(match.group(1)) == wanted:
+                return raw_file
+    return None
+
+
 def crawl(url: str, kb_root: Path) -> dict:
     """
     Main crawl pipeline.
@@ -680,6 +707,11 @@ def main():
         default=None,
         help="Path to the KB project root (default: auto-detect from script location)",
     )
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Crawl again even if this URL was already ingested",
+    )
     args = parser.parse_args()
 
     # Determine KB root
@@ -697,6 +729,12 @@ def main():
             file=sys.stderr,
         )
         sys.exit(1)
+
+    existing = find_existing_ingest(args.url, kb_root)
+    if existing and not args.force:
+        print(f"ALREADY INGESTED: {existing.relative_to(kb_root)}")
+        print("  Skipped to avoid a duplicate. Use --force to crawl it again.")
+        sys.exit(2)
 
     print(f"KB root: {kb_root}")
     print(f"URL: {args.url}")
