@@ -21,6 +21,7 @@ Report its output to the user. It exits with code 1 if there are errors.
 |---|---|---|
 | Dead `[[wiki links]]` | **Error** | A link points to a file that doesn't exist |
 | Invalid frontmatter | **Error** | Missing any of: `type`, `topic`, `sources`, `tags`, `complexity`, `completeness`, `last_verified`, `llm_summary` — or a `type` that isn't one of the schema types |
+| Broken image links | **Error** | A local `![…](path)` image doesn't exist. Images live in `knowledge_base/raw/assets/`; from `wiki/<topic>/` the link is `../../raw/assets/<slug>/<image>` |
 | Orphan articles | Note | No other article links to it (the generated master index doesn't count) |
 | No outgoing links | Note | The article doesn't link to any other article |
 | Uncompiled raw files | Note | Files in `knowledge_base/raw/feeds/` without the `_processed` suffix |

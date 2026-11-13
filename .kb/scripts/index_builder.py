@@ -10,7 +10,7 @@ Deterministic index builder for LLM-RE-WIKI. The AI never edits these files.
    - knowledge_base/wiki/_tools-index.md   tool + version -> articles
    - knowledge_base/wiki/_ttp-index.md     MITRE ATT&CK TTP -> articles
 3. Health check:
-   - Errors (exit code 1): dead [[links]], missing/invalid frontmatter
+   - Errors (exit code 1): dead [[links]], missing/invalid frontmatter, broken image links
    - Notes: orphan articles, articles with no outgoing links, raw files not compiled yet
 4. Synchronizes graph_data.js for the visualizer
 
@@ -286,6 +286,22 @@ def validate_links(wiki_dir: Path, articles: list[dict]) -> tuple[list[str], lis
     return dead_links, orphans, no_outlinks
 
 
+IMAGE_LINK_RE = re.compile(r"!\[[^\]]*\]\(\s*<?([^)\s>]+)>?(?:\s+\"[^\"]*\")?\s*\)")
+
+
+def validate_images(articles: list[dict]) -> list[str]:
+    """Returns one error per local image link whose file doesn't exist (resolved from the article's folder)."""
+    from urllib.parse import unquote
+    missing = []
+    for a in articles:
+        for target in IMAGE_LINK_RE.findall(a["content"]):
+            if re.match(r"^(https?:|data:|#)", target, re.IGNORECASE):
+                continue
+            if not (a["path"].parent / unquote(target)).resolve().is_file():
+                missing.append(f"{a['rel_path']} -> {target}")
+    return missing
+
+
 def unprocessed_raw_files(project_root: Path) -> list[str]:
     feeds = project_root / "knowledge_base" / "raw" / "feeds"
     if not feeds.exists():
@@ -340,13 +356,16 @@ def main():
 
     project_root = Path(__file__).resolve().parent.parent.parent
     wiki_dir = project_root / "knowledge_base" / "wiki"
-    if not wiki_dir.exists():
-        print(f"Error: Wiki directory not found at {wiki_dir}")
+    if not (project_root / "knowledge_base").is_dir():
+        print(f"Error: knowledge_base/ not found at {project_root}. Run this from an LLM-RE-WIKI checkout.")
         sys.exit(1)
+    # A fresh install has no articles yet; an empty wiki is valid, not an error.
+    wiki_dir.mkdir(parents=True, exist_ok=True)
 
     articles = load_articles(wiki_dir, project_root)
     dead_links, orphans, no_outlinks = validate_links(wiki_dir, articles)
     fm_errors = validate_frontmatter(articles)
+    missing_images = validate_images(articles)
     raw_pending = unprocessed_raw_files(project_root)
 
     print(f"[*] Scanned {sum(is_article(a) for a in articles)} wiki articles.")
@@ -359,6 +378,12 @@ def main():
                f"(required: {', '.join(REQUIRED_FIELDS)}, sources):", fm_errors)
     else:
         print("[✓] All articles have required frontmatter.")
+    if missing_images:
+        report(f"[!] Error: {len(missing_images)} broken image links "
+               "(images live in knowledge_base/raw/assets/; from wiki/<topic>/ use ../../raw/assets/…):",
+               missing_images)
+    else:
+        print("[✓] Zero broken image links.")
     if orphans:
         report(f"[*] Note: {len(orphans)} orphan articles (no other article links to them):", orphans, 5)
     if no_outlinks:
@@ -366,7 +391,7 @@ def main():
     if raw_pending:
         report(f"[*] Note: {len(raw_pending)} raw files not compiled yet:", raw_pending, 5)
 
-    exit_code = 1 if (dead_links or fm_errors) else 0
+    exit_code = 1 if (dead_links or fm_errors or missing_images) else 0
 
     if args.check:
         print("[*] Check mode complete." + (" Fix the errors above." if exit_code else ""))
