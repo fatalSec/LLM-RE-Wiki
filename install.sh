@@ -28,11 +28,10 @@ else
 fi
 
 REPO_URL="https://github.com/fatalSec/LLM-RE-WIKI.git"
-DEFAULT_INSTALL_DIR="$HOME/llm-re-wiki"
+DEFAULT_INSTALL_DIR="$HOME/.llm-re-wiki"
 ARG_DIR=""
 ARG_AGENT=""
 ARG_YES=0
-ARG_NO_CLI=0
 ARG_NO_VENV=0
 
 # Helper to read from /dev/tty if stdin is piped (e.g. curl | bash)
@@ -69,14 +68,13 @@ EOF
 show_help() {
     echo "LLM-RE-WIKI One-Line Installer"
     echo ""
-    echo "Usage: ./install.sh [options]"
-    echo "   or: curl -fsSL https://raw.githubusercontent.com/fatalSec/LLM-RE-WIKI/main/install.sh | bash -s -- [options]"
+    echo "Usage: ./scripts/install.sh [options]"
+    echo "   or: curl -fsSL https://raw.githubusercontent.com/fatalSec/LLM-RE-WIKI/main/scripts/install.sh | bash -s -- [options]"
     echo ""
     echo "Options:"
-    echo "  --dir <path>       Install destination (default: ~/llm-re-wiki or current repo)"
+    echo "  --dir <path>       Install destination (default: ~/.llm-re-wiki or current repo)"
     echo "  --agent <name>     Target agent: claude | opencode | pi | all | standalone"
     echo "  -y, --yes          Non-interactive mode (accept all defaults)"
-    echo "  --no-cli           Skip installing global ~/.local/bin/llm-re-wiki CLI"
     echo "  --no-venv          Skip creating Python virtual environment"
     echo "  -h, --help         Show this help message"
     echo ""
@@ -96,10 +94,6 @@ while [ $# -gt 0 ]; do
             ;;
         -y|--yes)
             ARG_YES=1
-            shift
-            ;;
-        --no-cli)
-            ARG_NO_CLI=1
             shift
             ;;
         --no-venv)
@@ -168,10 +162,9 @@ else
 fi
 
 # Step 3: Determine Target Directory
-# If we're already inside a clone of LLM-RE-WIKI, use the current dir by default
 CURRENT_DIR="$(pwd)"
 IS_INSIDE_REPO=0
-if [ -f "$CURRENT_DIR/AGENTS.md" ] && [ -d "$CURRENT_DIR/.kb" ] && [ -d "$CURRENT_DIR/knowledge_base" ]; then
+if [ -f "$CURRENT_DIR/AGENTS.md" ] && [ -d "$CURRENT_DIR/.kb" ]; then
     IS_INSIDE_REPO=1
     DEFAULT_INSTALL_DIR="$CURRENT_DIR"
 fi
@@ -187,7 +180,7 @@ if [ -z "$TARGET_DIR" ]; then
             TARGET_DIR="$(prompt_user "Use current directory? [Y/n]: " "Y")"
             case "$TARGET_DIR" in
                 y|Y|yes|YES) TARGET_DIR="$CURRENT_DIR" ;;
-                *) TARGET_DIR="$(prompt_user "Enter target directory: " "$HOME/llm-re-wiki")" ;;
+                *) TARGET_DIR="$(prompt_user "Enter target directory: " "$HOME/.llm-re-wiki")" ;;
             esac
         else
             TARGET_DIR="$(prompt_user "Where would you like to install LLM-RE-WIKI? [$DEFAULT_INSTALL_DIR]: " "$DEFAULT_INSTALL_DIR")"
@@ -323,37 +316,9 @@ if [ "$ARG_NO_VENV" -eq 0 ]; then
     fi
 fi
 
-# Step 8: Install Global CLI Tool
-if [ "$ARG_NO_CLI" -eq 0 ]; then
-    printf "\n%b==> Installing Global CLI Tool ('llm-re-wiki')...%b\n" "$BOLD" "$RESET"
-    BIN_DIR="$HOME/.local/bin"
-    mkdir -p "$BIN_DIR"
-    mkdir -p "$HOME/.config/llm-re-wiki"
-
-    # Save active vault config
-    cat > "$HOME/.config/llm-re-wiki/config" << CONF_EOF
-VAULT_DIR="$TARGET_DIR"
-PREFERRED_AGENT="$SELECTED_AGENT"
-CONF_EOF
-
-    # Install CLI binary
-    chmod +x "$TARGET_DIR/bin/llm-re-wiki"
-    ln -sf "$TARGET_DIR/bin/llm-re-wiki" "$BIN_DIR/llm-re-wiki"
-    printf "  %b[✓] Symlinked to: %s/llm-re-wiki%b\n" "$GREEN" "$BIN_DIR" "$RESET"
-
-    # Check if ~/.local/bin is in PATH
-    case ":$PATH:" in
-        *":$BIN_DIR:"*) ;;
-        *)
-            printf "\n  %b[!] Notice:%b %s is not in your current PATH.\n" "$YELLOW" "$RESET" "$BIN_DIR"
-            printf "      Add this line to your shell profile (~/.zshrc or ~/.bashrc):\n"
-            printf "      %bexport PATH=\"\$HOME/.local/bin:\$PATH\"%b\n" "$BOLD" "$RESET"
-            ;;
-    esac
-fi
-
-# Ensure lifecycle scripts are executable
-chmod +x "$TARGET_DIR/install.sh" "$TARGET_DIR/update.sh" "$TARGET_DIR/uninstall.sh" "$TARGET_DIR/bin/llm-re-wiki" 2>/dev/null || true
+# Step 8: Ensure scripts are executable
+chmod +x "$TARGET_DIR/scripts/"*.sh 2>/dev/null || true
+chmod +x "$TARGET_DIR/"*.sh 2>/dev/null || true
 
 # Step 9: Verify Knowledge Base Integrity
 printf "\n%b==> Running KB Self-Check...%b\n" "$BOLD" "$RESET"
@@ -374,27 +339,23 @@ echo ""
 echo "How to launch your AI Agent:"
 case "$SELECTED_AGENT" in
     claude)
-        echo "  • With CLI:    llm-re-wiki claude"
-        echo "  • Or direct:   cd $TARGET_DIR && claude"
+        echo "  cd $TARGET_DIR && claude"
         ;;
     opencode)
-        echo "  • With CLI:    llm-re-wiki opencode"
-        echo "  • Or direct:   cd $TARGET_DIR && opencode"
+        echo "  cd $TARGET_DIR && opencode"
         ;;
     pi)
-        echo "  • With CLI:    llm-re-wiki pi"
-        echo "  • Or direct:   cd $TARGET_DIR && pi"
+        echo "  cd $TARGET_DIR && pi"
         ;;
     *)
-        echo "  • Claude Code: cd $TARGET_DIR && claude   (or: llm-re-wiki claude)"
-        echo "  • OpenCode:    cd $TARGET_DIR && opencode (or: llm-re-wiki opencode)"
-        echo "  • Pi:          cd $TARGET_DIR && pi       (or: llm-re-wiki pi)"
+        echo "  • Claude Code: cd $TARGET_DIR && claude"
+        echo "  • OpenCode:    cd $TARGET_DIR && opencode"
+        echo "  • Pi:          cd $TARGET_DIR && pi"
         ;;
 esac
 
 echo ""
-echo "Idempotent Lifecycle Scripts (Local or CLI):"
-echo "  • Update:      ./update.sh      (or: llm-re-wiki update)"
-echo "  • Uninstall:   ./uninstall.sh   (or: llm-re-wiki uninstall)"
-echo "  • Knowledge:   llm-re-wiki graph | health | reindex | ingest <url>"
+echo "Idempotent Lifecycle Scripts:"
+echo "  • Update:    $TARGET_DIR/scripts/update.sh"
+echo "  • Uninstall: $TARGET_DIR/scripts/uninstall.sh"
 echo ""
