@@ -26,34 +26,30 @@ else
     RESET=""
 fi
 
-CONFIG_FILE="$HOME/.config/llm-re-wiki/config"
-
 resolve_vault_dir() {
     # 1. If currently inside a vault repo
-    if [ -f "./AGENTS.md" ] && [ -d "./.kb" ] && [ -d "./knowledge_base" ]; then
+    if [ -f "./AGENTS.md" ] && [ -d "./.kb" ]; then
         pwd
         return
     fi
 
-    # 2. From config file
-    if [ -f "$CONFIG_FILE" ]; then
-        # shellcheck disable=SC1090
-        . "$CONFIG_FILE"
-        if [ -n "$VAULT_DIR" ] && [ -d "$VAULT_DIR" ]; then
-            echo "$VAULT_DIR"
-            return
-        fi
-    fi
-
-    # 3. From script location
+    # 2. From script location (works whether in root or in scripts/)
     SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
     if [ -f "$SCRIPT_DIR/AGENTS.md" ] && [ -d "$SCRIPT_DIR/.kb" ]; then
         echo "$SCRIPT_DIR"
         return
     fi
+    PARENT_DIR="$(cd -P "$SCRIPT_DIR/.." >/dev/null 2>&1 && pwd)"
+    if [ -f "$PARENT_DIR/AGENTS.md" ] && [ -d "$PARENT_DIR/.kb" ]; then
+        echo "$PARENT_DIR"
+        return
+    fi
 
-    # 4. Standard default
-    if [ -d "$HOME/llm-re-wiki" ]; then
+    # 3. Standard default locations
+    if [ -d "$HOME/.llm-re-wiki" ]; then
+        echo "$HOME/.llm-re-wiki"
+        return
+    elif [ -d "$HOME/llm-re-wiki" ]; then
         echo "$HOME/llm-re-wiki"
         return
     fi
@@ -65,7 +61,7 @@ VAULT_DIR="$(resolve_vault_dir)"
 
 if [ -z "$VAULT_DIR" ] || [ ! -d "$VAULT_DIR" ]; then
     printf "%bError: LLM-RE-WIKI vault directory not found.%b\n" "$RED" "$RESET" >&2
-    printf "Please run install.sh or specify the directory in %s\n" "$CONFIG_FILE" >&2
+    printf "Please run update.sh from within the LLM-RE-WIKI repository directory.\n" >&2
     exit 1
 fi
 
