@@ -14,8 +14,8 @@
 General-purpose LLMs struggle with real-world reverse engineering for three reasons: **context window exhaustion** from raw disassembly/decompilation dumps, **hallucinated APIs or instruction semantics**, and **stateless sessions** that lose hard-won reversing insights across targets.
 
 **LLM-RE-Wiki** solves this by decoupling **persistent domain knowledge** from **deterministic binary analysis**:
-- **Persistent LLM Wiki (`wiki/`):** Raw writeups, architecture manuals, and protection bypass notes are compiled into atomic, YAML-indexed, token-compressed Markdown pages that agents query progressively.
-- **Role-Specialized Sub-Agents (`AGENTS.md`, `SKILLS.md`):** An orchestrator delegates static, native, and dynamic analysis tasks to focused sub-agents constrained by deterministic execution plans (`PLAN.md`).
+- **Persistent LLM Wiki (`knowledge_base/wiki/`):** Raw writeups, architecture manuals, and protection bypass notes are compiled into atomic, YAML-indexed, token-compressed Markdown pages that agents query progressively.
+- **Role-Specialized Sub-Agents (`AGENTS.md`, `CLAUDE.md`):** An orchestrator delegates static, native, and dynamic analysis tasks to focused sub-agents constrained by deterministic execution plans.
 - **Deterministic MCP Tooling:** Agents never guess control flow or encrypted strings—they inspect binaries directly via headless decompilers, disassemblers, and CPU emulators over the Model Context Protocol (MCP).
 
 ---
@@ -33,17 +33,17 @@ flowchart TB
 
     subgraph L1["1. Knowledge Curation & Wiki Layer"]
         direction LR
-        RAW["raw_targets/<br/>(Writeups, Docs, Dumps)"]:::knowledge
+        RAW["knowledge_base/raw/<br/>(Writeups, Docs, Dumps)"]:::knowledge
         INGEST["Ingestion & Compaction<br/>(Idempotent Schema Parser)"]:::knowledge
-        WIKI["wiki/<br/>(Atomic YAML Markdown)"]:::knowledge
-        ASSETS["raw_targets/assets/<br/>(Graphs & Diagrams)"]:::knowledge
+        WIKI["knowledge_base/wiki/<br/>(Atomic YAML Markdown)"]:::knowledge
+        ASSETS["knowledge_base/raw/assets/<br/>(Graphs & Diagrams)"]:::knowledge
         RAW --> INGEST --> WIKI
         INGEST --> ASSETS
     end
 
     subgraph L2["2. Agent Orchestration Layer (OpenCode / Claude Code)"]
         direction TB
-        HARNESS["CLI Agent Harness<br/>(AGENTS.md / PLAN.md / SKILLS.md)"]:::agent
+        HARNESS["CLI Agent Harness<br/>(AGENTS.md / CLAUDE.md)"]:::agent
         ORCH["Orchestrator Agent<br/>(Intent Routing & Context Budget)"]:::agent
         SA_JAVA["Java / Smali Sub-Agent<br/>(Manifest, Dex, Control Flow)"]:::agent
         SA_NAT["Native / ARM64 Sub-Agent<br/>(JNI, ELF/Mach-O, Obfuscation)"]:::agent
@@ -79,7 +79,7 @@ flowchart TB
 
 ### Architectural Layers
 1. **Knowledge Curation & Wiki Layer:** Converts unstructured security research into normalized, cross-linked Markdown documents with strict token budgets so agents retrieve only high-signal context.
-2. **Agent Orchestration Layer:** Uses `AGENTS.md` and `PLAN.md` to enforce structured multi-phase analysis—preventing single-agent context collapse on large APKs or heavily obfuscated native libraries.
+2. **Agent Orchestration Layer:** Uses `AGENTS.md` and `CLAUDE.md` to enforce structured multi-phase analysis—preventing single-agent context collapse on large APKs or heavily obfuscated native libraries.
 3. **Deterministic RE Tooling & MCP Bridge:** Connects sub-agents to headless static and dynamic tooling (`jadx-headless-mcp`, `Apktool`, `Ghidra`, `radare2`, `Unicorn`, `Capstone`) with boot-time health verification.
 4. **Target Binaries & Deliverables:** Grounds every finding in verifiable offsets, decompiled symbols, or emulated register states.
 
@@ -89,22 +89,26 @@ flowchart TB
 
 ```text
 LLM-RE-Wiki/
-├── AGENTS.md                 # Orchestrator and sub-agent routing rules & constraints
-├── PLAN.md                   # Deterministic multi-stage RE execution workflow
-├── SKILLS.md                 # Reusable domain skills (RASP bypass, JNI tracing, crypto)
-├── wiki/                     # Token-optimized, YAML-indexed knowledge base
-│   ├── index.md              # Master topic & tag catalog for fast progressive lookup
-│   ├── android/              # Dalvik/ART, Smali fallback, Binder, RASP patterns
-│   ├── native/               # ARM64/x86_64 internals, ELF/Mach-O, MBA deobfuscation
-│   └── crypto/               # Custom ciphers, white-box crypto, FindCrypt constants
-├── raw_targets/              # Unprocessed source material queued for ingestion
-│   ├── assets/               # Extracted diagrams, call graphs, and visual references
-│   └── ingest.log            # SHA-256 idempotency ledger preventing duplicate runs
-├── agents/                   # Harness-specific agent definitions (OpenCode / Claude Code)
-└── scripts/
-    ├── install.sh            # Registers agents, links skills, verifies MCP servers
-    ├── update.sh             # Fast-forwards wiki & skills without touching local targets
-    └── uninstall.sh          # Cleanly removes symlinks and agent registrations
+├── AGENTS.md                 # Master Orchestrator: task router & operational rules
+├── CLAUDE.md                 # Native bridge instructions for Claude Code
+├── .kb/                      # Agent "Firmware": rules, schemas, protocols, and automation
+│   ├── core-rules.md         # Anti-hallucination baseline & behavioral constraints
+│   ├── read-protocol.md      # Query engine: Fast-Path search & discovery traversal
+│   ├── write-pipeline.md     # Ingest-to-Wiki compilation pipeline & module routing
+│   ├── ingest-protocol.md    # URL ingestion protocol & crawler instructions
+│   ├── index-formats.md      # Master and cross-topic index schemas
+│   ├── maintenance.md        # Vault health checks, gap analysis, and contradictions
+│   ├── schemas/              # Content-type schemas (malware, pentest, API, paper, etc.)
+│   └── scripts/              # Python automation (crawl.py, index_builder.py, graph_generator.py)
+├── knowledge_base/           # The Knowledge Vault (all persistent research data)
+│   ├── raw/                  # Staging inbox: downloaded feeds, writeups, and assets
+│   │   ├── feeds/            # Raw markdown writeups (.md)
+│   │   └── assets/           # Downloaded images and diagrams (.png)
+│   ├── wiki/                 # Compiled Knowledge Base (Obsidian-compatible Markdown)
+│   └── graph/                # Force-directed interactive knowledge graph (index.html)
+├── install.sh                # Idempotent installer: agent detection & venv bootstrap
+├── update.sh                 # Fast-forwards upstream knowledge (git pull --ff-only)
+└── uninstall.sh              # Cleanly removes or archives vault with backup
 ```
 
 ---
@@ -124,7 +128,7 @@ flowchart LR
     B -- "Yes" --> C["Skip (Idempotent)"]:::src
     B -- "No" --> D["Atomic Topic Split<br/>& Lossless Compression"]:::proc
     D --> E["Inject YAML Frontmatter<br/>(arch, tool, confidence, tags)"]:::proc
-    E --> F["Commit to wiki/<br/>& Update index.md"]:::store
+    E --> F["Commit to knowledge_base/wiki/<br/>& Update _master-index.md"]:::store
 
     F -.->|"1. Scan Frontmatter"| G["Orchestrator Lookup"]:::query
     G -.->|"2. Load Matched Page"| H["Sub-Agent Context"]:::query
@@ -142,7 +146,7 @@ arch: ["arm64-v8a"]
 tool: ["ghidra", "unicorn"]
 confidence: "high"
 tags: ["ollvm", "cff", "symbolic-emulation", "dispatcher"]
-sources: ["raw_targets/ollvm-notes.md"]
+sources: ["knowledge_base/raw/feeds/ollvm-notes.md"]
 last_updated: "2026-11-04"
 ---
 ```
@@ -158,13 +162,13 @@ sequenceDiagram
     autonumber
     actor User
     participant Orch as Orchestrator Agent
-    participant Wiki as "LLM Wiki (wiki/)"
+    participant Wiki as "LLM Wiki (knowledge_base/wiki/)"
     participant Java as "Java / Smali Sub-Agent"
     participant Nat as "Native / ARM64 Sub-Agent"
     participant MCP as "MCP Tooling (Jadx / Ghidra / Unicorn)"
 
     User->>Orch: Analyze target.apk for root detection & encrypted C2
-    Orch->>Wiki: Query index.md (tags: rasp, jni, string-decryption)
+    Orch->>Wiki: Query _master-index.md (tags: rasp, jni, string-decryption)
     Wiki-->>Orch: Return matching playbooks & JNI bridge patterns
 
     Orch->>Java: Inspect Manifest, Java classes & native methods
@@ -185,45 +189,51 @@ sequenceDiagram
 ## Lifecycle Management (Install, Update, Uninstall)
 
 ### 1. Installation
-Clones the repository, registers sub-agents with **OpenCode** and **Claude Code**, symlinks `SKILLS.md`, and runs boot checks on required MCP servers (such as `jadx-headless-mcp`):
+Clones the repository, detects installed harnesses (**OpenCode**, **Claude Code**, **Pi**), ensures agent bridges, and provisions the Python environment:
 
 ```bash
 git clone https://github.com/fatalSec/LLM-RE-Wiki.git ~/.llm-re-wiki
 cd ~/.llm-re-wiki
-chmod +x scripts/*.sh
-./scripts/install.sh
+chmod +x *.sh
+./install.sh
 ```
 
 **What `install.sh` configures:**
-- Links agent profiles into `~/.config/opencode/agents/` and `~/.claude/agents/`.
-- Verifies availability of `jadx-headless-mcp`, `apktool`, `ghidra`, `radare2`, and Python `unicorn`/`capstone` bindings.
-- Initializes `raw_targets/ingest.log` if not already present.
+- Detects `claude`, `opencode`, and `pi` in `$PATH`.
+- Ensures `AGENTS.md` and `CLAUDE.md` bridges are active.
+- Provisions `.kb/scripts/.venv` and installs crawler dependencies.
+- Runs KB health check and secondary index builder.
 
 ### 2. Updating
-Pulls the latest `wiki/` entries, `AGENTS.md` improvements, and `SKILLS.md` updates without modifying your local `raw_targets/` or custom notes:
+Pulls the latest knowledge base entries, protocols, and scripts without modifying your local research notes:
 
 ```bash
-~/.llm-re-wiki/scripts/update.sh
+~/.llm-re-wiki/update.sh
 ```
 
-> **Tip:** Run `~/.llm-re-wiki/scripts/update.sh --check` to audit MCP server health and verify `/agents` registration after updating your CLI harness.
+> **Safe Update Guarantee:** `update.sh` uses `git pull --ff-only` with a safety stash to ensure local notes in `knowledge_base/` are never overwritten or clobbered.
 
 ### 3. Uninstallation
-Cleanly removes agent symlinks and harness registrations while prompting before deleting local `raw_targets/` data:
+Cleanly removes or archives the repository with safe backup options:
 
 ```bash
-~/.llm-re-wiki/scripts/uninstall.sh
+~/.llm-re-wiki/uninstall.sh
 ```
 
 ---
 
 ## Quickstart Workflow
 
-1. **Ingest New Research:** Drop raw markdown writeups, disassembly snippets, or documentation into `raw_targets/` and run the ingestion prompt against your harness to compile atomic pages into `wiki/`.
-2. **Launch Analysis Session:** Open your target workspace in **OpenCode** or **Claude Code** where `AGENTS.md` is active.
+1. **Ingest New Research:** Drop raw markdown writeups, disassembly snippets, or documentation into `knowledge_base/raw/` or use `.kb/scripts/crawl.py <url>`.
+2. **Launch Analysis Session:** Open your target workspace in **Claude Code**, **OpenCode**, or **Pi** where `AGENTS.md` is active:
+   ```bash
+   cd ~/.llm-re-wiki && claude    # Claude Code
+   cd ~/.llm-re-wiki && opencode  # OpenCode
+   cd ~/.llm-re-wiki && pi        # Pi
+   ```
 3. **Run Guided Triage:**
    ```text
-   Follow PLAN.md to triage ./target.apk. Check wiki/ for known RASP patterns,
+   Triage ./target.apk. Check knowledge_base/wiki/ for known RASP patterns,
    map JNI entry points via jadx-headless-mcp, and emulate any XOR/RC4 string
    decryptors found in the native layer.
    ```
@@ -232,10 +242,10 @@ Cleanly removes agent symlinks and harness registrations while prompting before 
 
 ## Contributing to the Wiki
 
-When adding new reverse engineering techniques to `wiki/`:
+When adding new reverse engineering techniques to `knowledge_base/wiki/`:
 1. **Keep Pages Atomic:** One protection mechanism, file format structure, or bypass technique per Markdown file.
 2. **Optimize Token Density:** Strip conversational filler; favor structured tables, register mappings, instruction patterns, and minimal reproducible code/Frida snippets.
-3. **Complete Frontmatter:** Populate all YAML metadata fields (`arch`, `tool`, `confidence`, `tags`) and register the entry in `wiki/index.md`.
+3. **Complete Frontmatter:** Populate all YAML metadata fields (`arch`, `complexity`, `completeness`, `tags`, `llm_summary`) and auto-generate secondary indexes with `python3 .kb/scripts/index_builder.py`.
 
 ---
 
