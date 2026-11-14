@@ -5,6 +5,62 @@
 
 ---
 
+## 0. Batch Compile — One Subagent per Raw File
+
+**Use when** `compile` names two or more files, names no file ("compile", "compile all"), or more than one file is pending. For a single named file, skip to §1.
+
+**Why:** each source must be compiled in its own context. Reading several RE writeups into one context overflows it, and the model starts mixing offsets, opcodes, and scripts between sources.
+
+### Orchestrator (the session that received `compile`)
+
+1. **List, don't read.** Pending files = `knowledge_base/raw/feeds/*.md` whose name doesn't end in `_processed`. Use `ls` / `wc -l` only. **Never open the contents of a raw file in the orchestrator.**
+2. **Spawn one subagent per file** with the worker prompt below (Claude Code: `Agent` tool; OpenCode: `task` tool; any agent with subagents). Run them in parallel if your platform allows it; with a local model, run them one after another — each still in a fresh subagent.
+3. **Keep only the reports.** Don't read the new articles in full; the reports are enough for step 4.
+4. **After every worker has finished**, do the shared steps yourself, one at a time:
+   1. **Protector profiles (§2 step 9):** for each report with a protector delta, load `.kb/schemas/protector-profile.md`, re-read the profile from disk (or create it), and apply the delta. Apply deltas for the same protector one after another, merging rows per the schema's rules.
+   2. **Batch cross-links (§2 step 8):** where reports show overlap (same protector, technique, or tool), link the new articles to each other. Read only the frontmatter and the heading you link to.
+   3. **Index (§2 step 12):** run `index_builder.py` once and fix any errors it reports.
+   4. **Log (§2 step 13):** one log entry per source, filled from its report.
+5. **Failures:** if a worker fails or times out, its raw file stays without `_processed`. Don't compile it in the orchestrator — list it in your reply so the user can rerun `compile <file>`.
+
+**No subagents available?** Compile the files one at a time with the full §2 pipeline: never read file N+1 before file N is renamed `_processed`. Tell the user that one file per session is safer for large batches.
+
+### Worker prompt
+
+Pass this verbatim, replacing `<file>`:
+
+```text
+You are a KB Custodian batch worker. Read AGENTS.md and follow its compile
+pipeline (.kb/write-pipeline.md §1–§5) for exactly one raw file:
+<file>
+
+Batch-worker rules:
+- Read no other file in knowledge_base/raw/feeds/.
+- Run §2 steps 1–8, 10 and 11. Skip step 9 (protector profile), step 12
+  (index_builder.py) and step 13 (log) — the orchestrator does those.
+- Do not edit anything under knowledge_base/wiki/protectors/ or log.md.
+- Other workers run at the same time. Before editing an existing article,
+  re-read it and make a targeted edit; never rewrite a file you didn't create.
+- Reply with this report only — no article text:
+
+source: <file>
+type: <type>
+articles created: <paths>
+articles updated: <paths>
+llm_summary: <path>: <llm_summary>   (one line per created article)
+protector delta: none | <Product name>
+  fingerprints: <indicator> | `<exact value>` | <version> | [[link#anchor]]
+  mechanisms: <name> | <category> | <version> | <bypass status> | `<key invariant>` | [[link#anchor]]
+  versions: <version> | <first seen> | <what changed> | [[link]]
+  bypasses: <approach> | <what it neutralizes> | <version> | [[link#anchor]]
+markers: [I]×N [U]×N [AI]×N | open questions: N
+coverage: complete | missing: <checklist items>
+```
+
+The worker loads `core-rules.md`, this file, and its schema itself (via `AGENTS.md`), so it follows the same rules as a single-file compile.
+
+---
+
 ## 1. Content Type Router
 
 Classify the raw file, then load the matching schema from `.kb/schemas/`.
