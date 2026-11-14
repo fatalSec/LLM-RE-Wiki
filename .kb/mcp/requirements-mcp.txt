@@ -1,0 +1,5 @@
+# Optional: MCP server for using the KB from any project (needs Python 3.10+)
+#
+# Install into the KB's virtual environment:
+#   .kb/scripts/.venv/bin/pip install -r .kb/mcp/requirements-mcp.txt
+mcp>=2.3,<3
