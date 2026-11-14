@@ -32,7 +32,7 @@ Determine your task from the user's prompt, then read the corresponding instruct
 |---|---|
 | **Answer a question (Query)** | `.kb/core-rules.md` → `.kb/read-protocol.md` |
 | **Save an answer (`file answer`)** | `.kb/read-protocol.md` (§ `file answer`) |
-| **Compile a raw file (Write)** | `.kb/core-rules.md` → `.kb/write-pipeline.md` → `.kb/schemas/<type>.md` |
+| **Compile a raw file (Write)** | `.kb/core-rules.md` → `.kb/write-pipeline.md` → `.kb/schemas/<type>.md` (+ `.kb/schemas/protector-profile.md` if the source analyzes a named protector) |
 | **Ingest a URL (Crawl Only)** | `.kb/ingest-protocol.md` |
 | **Health check / gap report** | Run `python3 .kb/scripts/index_builder.py --check` (or read `.kb/maintenance.md`) |
 | **Create/update indexes** | Run `python3 .kb/scripts/index_builder.py` |

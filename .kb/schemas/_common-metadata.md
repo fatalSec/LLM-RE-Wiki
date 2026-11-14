@@ -29,7 +29,7 @@ llm_summary: "<A dense, 1-2 sentence summary of the article's core knowledge for
 
 | Field | Required | Notes |
 |---|---|---|
-| `type` | Yes | Must match one of: `research-paper`, `blog`, `api-doc`, `pentest-finding`, `analysis-notes`, `malware-analysis` |
+| `type` | Yes | Must match one of: `research-paper`, `blog`, `api-doc`, `pentest-finding`, `analysis-notes`, `malware-analysis`, `protector-profile` |
 | `topic` | Yes | Relative path to parent topic `_index.md` (e.g. `wiki/rasp/_index`) |
 | `sources` | Yes | YAML array of original URLs, DOIs, or raw filenames. Primary source first; append (never replace) when a later source is merged in. Never omit. Legacy single `source:` is still accepted. |
 | `tags` | Yes | YAML array of lowercase, hyphenated tags. Min 2, max 8. |

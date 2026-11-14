@@ -47,7 +47,8 @@ SKIP_FILES = {MASTER_INDEX, TOOLS_INDEX, TTP_INDEX, "log.md", *LEGACY_INDEXES}
 # `sources` (list) is preferred; a single legacy `source` is still accepted.
 REQUIRED_FIELDS = ("type", "topic", "tags", "complexity", "completeness", "last_verified", "llm_summary")
 # Must match the `type:` values in .kb/schemas/*.md
-VALID_TYPES = ("blog", "analysis-notes", "api-doc", "pentest-finding", "malware-analysis", "research-paper")
+VALID_TYPES = ("blog", "analysis-notes", "api-doc", "pentest-finding", "malware-analysis", "research-paper",
+               "protector-profile")
 SUMMARY_MAX_CHARS = 120
 MAX_TAGS = 6
 

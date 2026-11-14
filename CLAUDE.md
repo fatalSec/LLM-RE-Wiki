@@ -14,7 +14,7 @@ When the user asks you to perform an action, load ONLY the required instruction 
 |---|---|---|
 | `search <query>` / "What does the wiki say about..." | `.kb/core-rules.md` → `.kb/read-protocol.md` | Two-step search (`rg` for specific terms, `_master-index.md` for broad questions), then produce a Unified Technical Response with inline `[V]` / `[AI Synthesis]` markers. |
 | `file answer` | `.kb/read-protocol.md` | Save the last answer, markers intact, to `knowledge_base/raw/feeds/answer-<slug>.md`. |
-| `compile <file>` / "Compile this raw file" | `.kb/core-rules.md` → `.kb/write-pipeline.md` → `.kb/schemas/<type>.md` | Extract technical invariants, offsets, opcodes, code snippets, and inlined image text. Compile to `knowledge_base/wiki/<topic>/<slug>.md`, then run index builder. |
+| `compile <file>` / "Compile this raw file" | `.kb/core-rules.md` → `.kb/write-pipeline.md` → `.kb/schemas/<type>.md` | Extract technical invariants, offsets, opcodes, code snippets, and inlined image text. Compile to `knowledge_base/wiki/<topic>/<slug>.md`; if the source analyzes a named protector, also create/update `knowledge_base/wiki/protectors/<name>.md` (`.kb/schemas/protector-profile.md`); then run index builder. |
 | `ingest <url>` | `.kb/ingest-protocol.md` | Run `.kb/scripts/crawl.py <url>` or extract web content into `knowledge_base/raw/`. |
 | `health-check` / `gap report` | `.kb/maintenance.md` | Run `python3 .kb/scripts/index_builder.py --check` and report errors and notes. |
 | `reindex` | — | Run `python3 .kb/scripts/index_builder.py` to regenerate `_master-index.md`, `_tools-index.md`, and `_ttp-index.md` (never edit them by hand). |
