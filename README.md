@@ -102,6 +102,7 @@ Type these in your agent's chat (plain-English requests work too):
 |---|---|
 | `ingest <url>` | Download a web page into `knowledge_base/raw/feeds/` with its images (skips URLs you already ingested) |
 | `compile <file>` | Turn a raw file into a structured wiki article and update the indexes |
+| `compile` | Compile every pending raw file, each in its own subagent so sources never share a context |
 | `search <question>` | Answer from the wiki, with sources and provenance markers |
 | `file answer` | Save the last answer to the inbox so you can compile it later |
 | `reindex` | Rebuild the indexes and the graph |

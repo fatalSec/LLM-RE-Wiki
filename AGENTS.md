@@ -33,6 +33,7 @@ Determine your task from the user's prompt, then read the corresponding instruct
 | **Answer a question (Query)** | `.kb/core-rules.md` → `.kb/read-protocol.md` |
 | **Save an answer (`file answer`)** | `.kb/read-protocol.md` (§ `file answer`) |
 | **Compile a raw file (Write)** | `.kb/core-rules.md` → `.kb/write-pipeline.md` → `.kb/schemas/<type>.md` (+ `.kb/schemas/protector-profile.md` if the source analyzes a named protector) |
+| **Compile several raw files (Batch)** | `.kb/write-pipeline.md` §0 only — spawn one subagent per raw file; each subagent reads this file and runs the single-file compile. Never read more than one raw file in one context. |
 | **Ingest a URL (Crawl Only)** | `.kb/ingest-protocol.md` |
 | **Health check / gap report** | Run `python3 .kb/scripts/index_builder.py --check` (or read `.kb/maintenance.md`) |
 | **Create/update indexes** | Run `python3 .kb/scripts/index_builder.py` |
@@ -61,7 +62,8 @@ Determine your task from the user's prompt, then read the corresponding instruct
 | Command | Action | Module / Script |
 |---|---|---|
 | `ingest <url>` | Crawl URL → raw markdown + images inbox dump | `.kb/ingest-protocol.md` |
-| `compile <file>` | Process unprocessed `raw/` files into wiki articles | `.kb/write-pipeline.md` |
+| `compile <file>` | Compile one raw file into wiki articles | `.kb/write-pipeline.md` |
+| `compile` / `compile all` | Compile every pending raw file, one subagent per file | `.kb/write-pipeline.md` §0 |
 | `search <query>` | Query KB → Unified Answer (KB Facts + AI Synthesis inline) | `.kb/read-protocol.md` |
 | `file answer` | Save the last answer to the raw inbox for later compile | `.kb/read-protocol.md` |
 | `reindex` | Regenerate master/tools/TTP indexes, validate links, and sync graph | `python3 .kb/scripts/index_builder.py` |
