@@ -223,6 +223,8 @@ To do it later by hand:
 
 (`--agent` also takes `claude`, `opencode`, or `cursor`; `remove` undoes it.)
 
+> **OpenCode:** it runs a background service that loads MCP servers at start-up. After registering, run `opencode service restart` (or reopen OpenCode), then check with `opencode mcp list`. If your `~/.config/opencode/opencode.json(c)` has a syntax error, the installer stops and tells you the line instead of registering.
+
 **Or connect an agent manually:**
 
 Claude Code (available in all your projects):

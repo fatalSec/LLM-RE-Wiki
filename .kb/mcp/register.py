@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -77,13 +78,47 @@ class UnreadableConfig(Exception):
     pass
 
 
-def _load(path: Path) -> dict:
+def _strip_jsonc(text: str) -> str:
+    """Removes // and /* */ comments (outside strings) and trailing commas, so JSONC parses as JSON."""
+    out, i, n, in_str = [], 0, len(text), False
+    while i < n:
+        ch = text[i]
+        if in_str:
+            out.append(ch)
+            if ch == "\\" and i + 1 < n:
+                out.append(text[i + 1])
+                i += 2
+                continue
+            if ch == '"':
+                in_str = False
+        elif ch == '"':
+            in_str = True
+            out.append(ch)
+        elif text.startswith("//", i):
+            while i < n and text[i] != "\n":
+                i += 1
+            continue
+        elif text.startswith("/*", i):
+            end = text.find("*/", i + 2)
+            i = n if end == -1 else end + 2
+            continue
+        else:
+            out.append(ch)
+        i += 1
+    return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
+
+
+def _load(path: Path, jsonc: bool = False) -> dict:
+    """Strict JSON by default (safe to rewrite). jsonc=True also accepts comments and
+    trailing commas — for read-only checks only, since rewriting would drop comments."""
     if not path.is_file():
         return {}
+    text = path.read_text(encoding="utf-8") or "{}"
     try:
-        data = json.loads(path.read_text(encoding="utf-8") or "{}")
+        data = json.loads(_strip_jsonc(text) if jsonc else text)
     except json.JSONDecodeError as e:
-        raise UnreadableConfig(f"{path} is not plain JSON ({e.msg}); edit it by hand") from e
+        kind = "has a syntax error" if jsonc else "is not plain JSON"
+        raise UnreadableConfig(f"{path} {kind} (line {e.lineno}: {e.msg}); fix or edit it by hand") from e
     if not isinstance(data, dict):
         raise UnreadableConfig(f"{path} does not contain a JSON object; edit it by hand")
     return data
@@ -122,7 +157,7 @@ def is_registered(agent: str) -> bool:
         return shutil.which("claude") is not None and _run(["claude", "mcp", "get", NAME]).returncode == 0
     if agent == "opencode":
         try:
-            return any(NAME in table for table in _opencode_servers(_load(_opencode_config())))
+            return any(NAME in table for table in _opencode_servers(_load(_opencode_config(), jsonc=True)))
         except UnreadableConfig:
             return False
     if agent == "cursor":
@@ -142,10 +177,17 @@ def add(agent: str) -> str:
             raise RuntimeError((r.stderr or r.stdout).strip())
         return "registered (user scope, all projects)"
     if agent == "opencode":
+        path = _opencode_config()
+        # Never let `opencode mcp add` edit a config that is already broken: it appends to it
+        # anyway and the result can't be loaded. Raises UnreadableConfig with the line number.
+        _load(path, jsonc=True)
         r = _run([_opencode_bin() or "opencode", "mcp", "add", "--global", NAME, "--", PYTHON, str(SERVER)])
         if r.returncode:
             raise RuntimeError((r.stderr or r.stdout).strip())
-        return f"registered (global: {_opencode_config()})"
+        if not is_registered("opencode"):
+            raise RuntimeError(f"OpenCode reported success, but {path} doesn't contain a loadable entry; check that file")
+        return (f"registered (global: {path}). Restart OpenCode's background service to load it: "
+                "opencode service restart")
     if agent == "cursor":
         path = _cursor_config()
         data = _load(path)
@@ -165,7 +207,12 @@ def remove(agent: str) -> str:
         return "removed"
     if agent == "opencode":
         path = _opencode_config()
-        data = _load(path)
+        try:
+            data = _load(path)  # strict: never rewrite a JSONC file (its comments would be lost)
+        except UnreadableConfig:
+            _load(path, jsonc=True)  # re-raises if the file is actually broken
+            raise UnreadableConfig(f'{path} contains comments, so it is not rewritten automatically; '
+                                   f'delete the "{NAME}" entry under "mcp" by hand') from None
         for table in _opencode_servers(data):
             table.pop(NAME, None)
         _save(path, data)
