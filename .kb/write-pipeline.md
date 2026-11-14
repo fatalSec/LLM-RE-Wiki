@@ -20,6 +20,8 @@ Classify the raw file, then load the matching schema from `.kb/schemas/`.
 
 **Placeholders:** every `<…>` in a template is a placeholder. Fill it from the source or delete the line — never copy placeholder text or invent values.
 
+**Protector profiles** (`protector-profile.md`, `type: protector-profile`) are not in this router: they are derived pages, updated in step 9 *after* the source is compiled with its own schema.
+
 **Tiebreaker:** Highest priority wins. If the file covers two distinct domains, split per §3 and assign each chunk its own schema. Multi-topic files (3+ distinct `##` domains) → split per §3 first.
 
 ---
@@ -40,19 +42,20 @@ Classify the raw file, then load the matching schema from `.kb/schemas/`.
 5. **Load schema** from `.kb/schemas/<type>.md`.
 6. **YAML metadata:** Write required fields, `sources: [<url or file>]`, and a dense 1-2 sentence `llm_summary` with the most searchable terms first (its first ~120 characters go into the master index).
 7. **Write article(s)** per schema. Check off headings and code from the step 1 checklist as you write.
-8. **Cross-link:** Link every new article from ≥1 related existing article, and link out to related articles. (Do **not** edit any index file — they are generated in step 11.)
-9. **Coverage check:** Confirm every heading, mechanism, and code block from the step 1 checklist is present in the output. Re-read raw text only if a missing item requires verification.
-10. **Rename** raw file: append `_processed`.
-11. **Automated Indexing & Graph Sync:** Run the deterministic indexer and fix any errors it reports:
+8. **Cross-link:** Link every new article from ≥1 related existing article, and link out to related articles. (Do **not** edit any index file — they are generated in step 12.)
+9. **Protector profile:** If the source *analyzes* the mechanisms of a named commercial protector, packer, obfuscator, or RASP product (not just mentions one), load `.kb/schemas/protector-profile.md` and create or update `wiki/protectors/<protector-slug>.md`: add or update one mechanism row per mechanism (with the version and a `[[link#anchor]]` to the new article), extend the version timeline, fingerprints, and bypass list, and append the source to `sources:`. Link the new article back to the profile. Skip this step otherwise.
+10. **Coverage check:** Confirm every heading, mechanism, and code block from the step 1 checklist is present in the output. Re-read raw text only if a missing item requires verification.
+11. **Rename** raw file: append `_processed`.
+12. **Automated Indexing & Graph Sync:** Run the deterministic indexer and fix any errors it reports:
     ```bash
     python3 .kb/scripts/index_builder.py
     ```
     *(Regenerates `_master-index`, `_tools-index`, `_ttp-index`, validates links and frontmatter, and syncs `graph_data.js`.)*
-12. **Log** to `knowledge_base/wiki/log.md`:
+13. **Log** to `knowledge_base/wiki/log.md`:
 ```markdown
 ## [YYYY-MM-DD] compile | <source>
 - Type: <type> | Articles created: <list> | Updated: <list>
-- Indexes updated: auto (index_builder.py) | Graph: yes
+- Indexes updated: auto (index_builder.py) | Graph: yes | Protector profile: <created / updated / none>
 - Markers: [V] default | [I]×N [U]×N [AI]×N | Open questions: N
 ```
 

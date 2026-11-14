@@ -127,7 +127,7 @@ search        ──▶  answer with exact code and [V] / [AI Synthesis] markers
 ```
 
 - `AGENTS.md` / `CLAUDE.md` tell the agent which instructions to load for each command.
-- `.kb/` holds the rules, the compile and search steps, and one template per content type (blog, malware analysis, pentest finding, research paper, API reference, analysis notes).
+- `.kb/` holds the rules, the compile and search steps, and one template per content type (blog, malware analysis, pentest finding, research paper, API reference, analysis notes), plus a **protector profile** template.
 - Python scripts handle the deterministic parts: crawling (and skipping URLs you already ingested), building indexes, checking links and metadata, and generating the graph.
 - Search always takes two steps: `rg` for exact terms (function names, opcodes, hex), or the auto-generated `_master-index.md` (one line per article) for broad questions. The AI never edits index files, so they never go stale.
 
@@ -198,6 +198,9 @@ Yes. Drop any `.md` file into `knowledge_base/raw/feeds/` and run `compile <file
 
 **What if two writeups cover the same target?**
 The agent merges the new details into the existing article instead of creating a duplicate. Both sources are listed in the article's `sources:` field, and conflicting claims are marked `[X]`.
+
+**What if several writeups analyze the same protector (DexProtector, DexGuard, VMProtect…)?**
+Each writeup keeps its own detailed article, and the agent also maintains one **protector profile** at `wiki/protectors/<name>.md`: how to recognize it, every detection mechanism by version with its bypass status, a version timeline, and links to the detailed articles. Ask "what does DexProtector detect?" and the agent reads the profile first.
 
 **What if I ingest the same URL twice?**
 It's skipped, and you're told which file already has it. Add `--force` to crawl it again (for example, if the page was updated).
