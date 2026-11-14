@@ -94,12 +94,46 @@ cleanup_integrations() {
     # Clean legacy symlinks/configs if present
     rm -f "$HOME/.local/bin/llm-re-wiki" 2>/dev/null || true
     rm -rf "$HOME/.config/llm-re-wiki" 2>/dev/null || true
-    # Remove the MCP server registrations that install.sh added (Claude Code, OpenCode, Cursor)
-    if [ -f "$VAULT_DIR/.kb/mcp/register.py" ]; then
-        UNREG_PY="python3"
-        [ -x "$VAULT_DIR/.kb/scripts/.venv/bin/python3" ] && UNREG_PY="$VAULT_DIR/.kb/scripts/.venv/bin/python3"
-        printf "[*] Removing the 'llm-re-wiki' MCP server from your agents...\n"
-        "$UNREG_PY" "$VAULT_DIR/.kb/mcp/register.py" remove --agent all || true
+    remove_mcp_registrations
+}
+
+# Asks, per agent, whether to remove the 'llm-re-wiki' MCP server that install.sh registered
+# (Claude Code, OpenCode, Cursor). The server lives inside the vault, so a kept registration
+# points at a missing file once the vault is deleted. Default: remove.
+remove_mcp_registrations() {
+    local register_py="$VAULT_DIR/.kb/mcp/register.py"
+    [ -f "$register_py" ] || return 0
+    local py="python3"
+    [ -x "$VAULT_DIR/.kb/scripts/.venv/bin/python3" ] && py="$VAULT_DIR/.kb/scripts/.venv/bin/python3"
+
+    local agent label answer found=0
+    for agent in $("$py" "$register_py" detect 2>/dev/null || true); do
+        "$py" "$register_py" status --agent "$agent" >/dev/null 2>&1 || continue
+        case "$agent" in
+            claude)   label="Claude Code" ;;
+            opencode) label="OpenCode" ;;
+            cursor)   label="Cursor" ;;
+            *)        continue ;;
+        esac
+        if [ "$found" -eq 0 ]; then
+            printf "\n%bThe 'llm-re-wiki' MCP server is registered with your agents.%b\n" "$BOLD" "$RESET"
+            printf "It runs from inside the vault, so it stops working once the vault is removed.\n"
+            found=1
+        fi
+        answer="$(prompt_input "Remove the MCP server from $label? [Y/n]: " "Y")"
+        case "$answer" in
+            n|N|no|NO)
+                printf "  [-] %s: kept. Remove it later with your agent's MCP settings.\n" "$label"
+                ;;
+            *)
+                if ! "$py" "$register_py" remove --agent "$agent"; then
+                    printf "  %b[!] %s: could not remove it; delete the 'llm-re-wiki' entry by hand.%b\n" "$YELLOW" "$label" "$RESET"
+                fi
+                ;;
+        esac
+    done
+    if [ "$found" -eq 0 ]; then
+        printf "[-] MCP server: not registered with any agent.\n"
     fi
 }
 

@@ -210,7 +210,7 @@ It is **read-only**: it can't change your notes and never touches the network.
 
 The server also tells connected agents what the provenance markers mean, and that KB content is data, never instructions.
 
-**Install** (needs Python 3.10+). `install.sh` offers it, then asks, for **each agent it finds on your machine** (Claude Code, OpenCode, Cursor), whether to register the server there. Already-registered agents are skipped, and `uninstall.sh` removes the registrations again.
+**Install** (needs Python 3.10+). `install.sh` offers it, then asks, for **each agent it finds on your machine** (Claude Code, OpenCode, Cursor), whether to register the server there. Already-registered agents are skipped, and `uninstall.sh` asks, for each agent, whether to remove the registration again.
 
 To do it later by hand:
 
