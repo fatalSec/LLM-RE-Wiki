@@ -89,18 +89,19 @@ echo ""
 
 CHOICE="$(prompt_input "Enter choice [1-3, default: 3]: " "3")"
 
-case "$CHOICE" in
-    1|2)
-        # Clean legacy symlinks/configs if present
-        rm -f "$HOME/.local/bin/llm-re-wiki" 2>/dev/null || true
-        rm -rf "$HOME/.config/llm-re-wiki" 2>/dev/null || true
-        # Remove the MCP server registration that install.sh added to Claude Code (if any)
-        if command -v claude >/dev/null 2>&1 && claude mcp get llm-re-wiki >/dev/null 2>&1; then
-            claude mcp remove llm-re-wiki --scope user >/dev/null 2>&1 \
-                && printf "[*] Removed the 'llm-re-wiki' MCP server from Claude Code.\n" || true
-        fi
-        ;;
-esac
+# Runs only right before the vault is actually deleted (never on cancel)
+cleanup_integrations() {
+    # Clean legacy symlinks/configs if present
+    rm -f "$HOME/.local/bin/llm-re-wiki" 2>/dev/null || true
+    rm -rf "$HOME/.config/llm-re-wiki" 2>/dev/null || true
+    # Remove the MCP server registrations that install.sh added (Claude Code, OpenCode, Cursor)
+    if [ -f "$VAULT_DIR/.kb/mcp/register.py" ]; then
+        UNREG_PY="python3"
+        [ -x "$VAULT_DIR/.kb/scripts/.venv/bin/python3" ] && UNREG_PY="$VAULT_DIR/.kb/scripts/.venv/bin/python3"
+        printf "[*] Removing the 'llm-re-wiki' MCP server from your agents...\n"
+        "$UNREG_PY" "$VAULT_DIR/.kb/mcp/register.py" remove --agent all || true
+    fi
+}
 
 case "$CHOICE" in
     1)
@@ -110,6 +111,7 @@ case "$CHOICE" in
         tar -czf "$BACKUP_FILE" -C "$(dirname "$VAULT_DIR")" "$(basename "$VAULT_DIR")"
         printf "%b[✓] Backup archive created successfully: %s%b\n" "$GREEN" "$BACKUP_FILE" "$RESET"
 
+        cleanup_integrations
         printf "[*] Removing vault directory: %s...\n" "$VAULT_DIR"
         rm -rf "$VAULT_DIR"
         printf "%b[✓] LLM-RE-WIKI uninstalled. Your research is safely preserved in %s%b\n" "$GREEN" "$BACKUP_FILE" "$RESET"
@@ -118,6 +120,7 @@ case "$CHOICE" in
         printf "\n%b%bWARNING: This will permanently delete %s and all research notes!%b\n" "$RED" "$BOLD" "$VAULT_DIR" "$RESET"
         CONFIRM="$(prompt_input "Type DELETE to confirm: " "")"
         if [ "$CONFIRM" = "DELETE" ]; then
+            cleanup_integrations
             printf "[*] Removing %s...\n" "$VAULT_DIR"
             rm -rf "$VAULT_DIR"
             printf "%b[✓] LLM-RE-WIKI completely removed.%b\n" "$GREEN" "$RESET"

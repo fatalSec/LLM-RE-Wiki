@@ -337,26 +337,47 @@ if [ "$ARG_NO_MCP" -eq 0 ] && [ -x "$VENV_PY" ]; then
                 if "$TARGET_DIR/.kb/scripts/.venv/bin/pip" install -q -r "$TARGET_DIR/.kb/mcp/requirements-mcp.txt"; then
                     MCP_STATUS="installed"
                     printf "  %b[✓] MCP server installed:%b .kb/mcp/server.py\n" "$GREEN" "$RESET"
-                    if [ -n "$CLAUDE_PATH" ]; then
-                        if claude mcp get llm-re-wiki >/dev/null 2>&1; then
-                            MCP_STATUS="registered with Claude Code"
-                            printf "  %b[✓] Already registered with Claude Code.%b\n" "$GREEN" "$RESET"
-                        else
-                            REGISTER_MCP="Y"
-                            if [ "$ARG_YES" -eq 0 ]; then
-                                REGISTER_MCP="$(prompt_user "Register it with Claude Code for all your projects (user scope)? [Y/n]: " "Y")"
-                            fi
-                            case "$REGISTER_MCP" in
-                                y|Y|yes|YES)
-                                    if claude mcp add --scope user llm-re-wiki -- "$VENV_PY" "$TARGET_DIR/.kb/mcp/server.py" >/dev/null; then
-                                        MCP_STATUS="registered with Claude Code"
-                                        printf "  %b[✓] Registered with Claude Code as 'llm-re-wiki'.%b\n" "$GREEN" "$RESET"
-                                    else
-                                        printf "  %b[!] Claude Code registration failed; see the README to add it manually.%b\n" "$YELLOW" "$RESET"
-                                    fi
-                                    ;;
-                            esac
+                    # Offer to register it with every installed agent that supports MCP
+                    REGISTER_PY="$TARGET_DIR/.kb/mcp/register.py"
+                    MCP_AGENTS="$("$VENV_PY" "$REGISTER_PY" detect 2>/dev/null || true)"
+                    REGISTERED_WITH=""
+                    if [ -z "$MCP_AGENTS" ]; then
+                        printf "  [-] No MCP-capable agents found (Claude Code, OpenCode, Cursor). See README to connect one later.\n"
+                    fi
+                    for MCP_AGENT in $MCP_AGENTS; do
+                        case "$MCP_AGENT" in
+                            claude)   AGENT_LABEL="Claude Code"; AGENT_SCOPE="for all your projects" ;;
+                            opencode) AGENT_LABEL="OpenCode";    AGENT_SCOPE="globally" ;;
+                            cursor)   AGENT_LABEL="Cursor";      AGENT_SCOPE="in ~/.cursor/mcp.json" ;;
+                            *)        continue ;;
+                        esac
+                        if "$VENV_PY" "$REGISTER_PY" status --agent "$MCP_AGENT" >/dev/null 2>&1; then
+                            printf "  %b[✓] %s: already registered.%b\n" "$GREEN" "$AGENT_LABEL" "$RESET"
+                            REGISTERED_WITH="$REGISTERED_WITH, $AGENT_LABEL"
+                            continue
                         fi
+                        REGISTER_MCP="Y"
+                        if [ "$ARG_YES" -eq 0 ]; then
+                            REGISTER_MCP="$(prompt_user "Register the MCP server with $AGENT_LABEL ($AGENT_SCOPE)? [Y/n]: " "Y")"
+                        fi
+                        case "$REGISTER_MCP" in
+                            y|Y|yes|YES)
+                                if "$VENV_PY" "$REGISTER_PY" add --agent "$MCP_AGENT"; then
+                                    REGISTERED_WITH="$REGISTERED_WITH, $AGENT_LABEL"
+                                else
+                                    printf "  %b[!] %s registration failed; see the README to add it manually.%b\n" "$YELLOW" "$AGENT_LABEL" "$RESET"
+                                fi
+                                ;;
+                            *)
+                                printf "  [-] %s: skipped.\n" "$AGENT_LABEL"
+                                ;;
+                        esac
+                    done
+                    if [ -n "$PI_PATH" ]; then
+                        printf "  [-] Pi: no MCP setup available; open Pi inside the KB folder instead.\n"
+                    fi
+                    if [ -n "$REGISTERED_WITH" ]; then
+                        MCP_STATUS="registered with ${REGISTERED_WITH#, }"
                     fi
                 else
                     printf "  %b[!] Could not install the MCP server dependency; skipped.%b\n" "$YELLOW" "$RESET"

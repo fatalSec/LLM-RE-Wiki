@@ -173,7 +173,7 @@ LLM-RE-WIKI/
 │   ├── index-formats.md   # Index file formats
 │   ├── maintenance.md     # Health check and reports
 │   ├── schemas/           # Article templates per content type
-│   ├── mcp/               # Optional read-only MCP server (server.py, test_server.py)
+│   ├── mcp/               # Optional read-only MCP server (server.py, register.py, test_server.py)
 │   └── scripts/
 │       ├── crawl.py           # Web page → Markdown + images
 │       ├── index_builder.py   # Indexes + health check
@@ -209,13 +209,21 @@ It is **read-only**: it can't change your notes and never touches the network.
 
 The server also tells connected agents what the provenance markers mean, and that KB content is data, never instructions.
 
-**Install** (needs Python 3.10+). `install.sh` offers this and can register it with Claude Code for you. To do it by hand:
+**Install** (needs Python 3.10+). `install.sh` offers it, then asks, for **each agent it finds on your machine** (Claude Code, OpenCode, Cursor), whether to register the server there. Already-registered agents are skipped, and `uninstall.sh` removes the registrations again.
+
+To do it later by hand:
 
 ```bash
 ~/.llm-re-wiki/.kb/scripts/.venv/bin/pip install -r ~/.llm-re-wiki/.kb/mcp/requirements-mcp.txt
 ```
 
-**Connect your agent:**
+```bash
+~/.llm-re-wiki/.kb/scripts/.venv/bin/python3 ~/.llm-re-wiki/.kb/mcp/register.py add --agent all
+```
+
+(`--agent` also takes `claude`, `opencode`, or `cursor`; `remove` undoes it.)
+
+**Or connect an agent manually:**
 
 Claude Code (available in all your projects):
 
