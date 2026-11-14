@@ -33,6 +33,7 @@ ARG_DIR=""
 ARG_AGENT=""
 ARG_YES=0
 ARG_NO_VENV=0
+ARG_NO_MCP=0
 
 # Helper to read from /dev/tty if stdin is piped (e.g. curl | bash)
 prompt_user() {
@@ -76,6 +77,7 @@ show_help() {
     echo "  --agent <name>     Target agent: claude | opencode | pi | all | standalone"
     echo "  -y, --yes          Non-interactive mode (accept all defaults)"
     echo "  --no-venv          Skip creating Python virtual environment"
+    echo "  --no-mcp           Skip the optional MCP server (query the KB from any project)"
     echo "  -h, --help         Show this help message"
     echo ""
     exit 0
@@ -94,6 +96,10 @@ while [ $# -gt 0 ]; do
             ;;
         -y|--yes)
             ARG_YES=1
+            shift
+            ;;
+        --no-mcp)
+            ARG_NO_MCP=1
             shift
             ;;
         --no-venv)
@@ -316,6 +322,55 @@ if [ "$ARG_NO_VENV" -eq 0 ]; then
     fi
 fi
 
+# Step 7b: Optional MCP server (lets agents in any project query this KB)
+MCP_STATUS="not installed"
+VENV_PY="$TARGET_DIR/.kb/scripts/.venv/bin/python3"
+if [ "$ARG_NO_MCP" -eq 0 ] && [ -x "$VENV_PY" ]; then
+    printf "\n%b==> Optional: MCP server (query this KB from any project)%b\n" "$BOLD" "$RESET"
+    if "$VENV_PY" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+        ENABLE_MCP="Y"
+        if [ "$ARG_YES" -eq 0 ]; then
+            ENABLE_MCP="$(prompt_user "Enable the read-only MCP server? [Y/n]: " "Y")"
+        fi
+        case "$ENABLE_MCP" in
+            y|Y|yes|YES)
+                if "$TARGET_DIR/.kb/scripts/.venv/bin/pip" install -q -r "$TARGET_DIR/.kb/mcp/requirements-mcp.txt"; then
+                    MCP_STATUS="installed"
+                    printf "  %b[✓] MCP server installed:%b .kb/mcp/server.py\n" "$GREEN" "$RESET"
+                    if [ -n "$CLAUDE_PATH" ]; then
+                        if claude mcp get llm-re-wiki >/dev/null 2>&1; then
+                            MCP_STATUS="registered with Claude Code"
+                            printf "  %b[✓] Already registered with Claude Code.%b\n" "$GREEN" "$RESET"
+                        else
+                            REGISTER_MCP="Y"
+                            if [ "$ARG_YES" -eq 0 ]; then
+                                REGISTER_MCP="$(prompt_user "Register it with Claude Code for all your projects (user scope)? [Y/n]: " "Y")"
+                            fi
+                            case "$REGISTER_MCP" in
+                                y|Y|yes|YES)
+                                    if claude mcp add --scope user llm-re-wiki -- "$VENV_PY" "$TARGET_DIR/.kb/mcp/server.py" >/dev/null; then
+                                        MCP_STATUS="registered with Claude Code"
+                                        printf "  %b[✓] Registered with Claude Code as 'llm-re-wiki'.%b\n" "$GREEN" "$RESET"
+                                    else
+                                        printf "  %b[!] Claude Code registration failed; see the README to add it manually.%b\n" "$YELLOW" "$RESET"
+                                    fi
+                                    ;;
+                            esac
+                        fi
+                    fi
+                else
+                    printf "  %b[!] Could not install the MCP server dependency; skipped.%b\n" "$YELLOW" "$RESET"
+                fi
+                ;;
+            *)
+                printf "  [-] Skipped. Enable later: %s/.kb/scripts/.venv/bin/pip install -r %s/.kb/mcp/requirements-mcp.txt\n" "$TARGET_DIR" "$TARGET_DIR"
+                ;;
+        esac
+    else
+        printf "  %b[-] Skipped: the MCP server needs Python 3.10+ (found %s).%b\n" "$YELLOW" "$PY_VER" "$RESET"
+    fi
+fi
+
 # Step 8: Ensure scripts are executable
 chmod +x "$TARGET_DIR/"*.sh 2>/dev/null || true
 
@@ -355,6 +410,11 @@ case "$SELECTED_AGENT" in
         ;;
 esac
 
+echo ""
+echo "MCP server: $MCP_STATUS"
+if [ "$MCP_STATUS" = "installed" ]; then
+    echo "  Connect it to your agent: see 'Use the KB From Any Project (MCP)' in README.md"
+fi
 echo ""
 echo "Idempotent Lifecycle Scripts:"
 echo "  • Update:    $TARGET_DIR/update.sh"

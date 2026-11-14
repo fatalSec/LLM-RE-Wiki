@@ -89,9 +89,18 @@ echo ""
 
 CHOICE="$(prompt_input "Enter choice [1-3, default: 3]: " "3")"
 
-# Clean legacy symlinks/configs if present
-rm -f "$HOME/.local/bin/llm-re-wiki" 2>/dev/null || true
-rm -rf "$HOME/.config/llm-re-wiki" 2>/dev/null || true
+case "$CHOICE" in
+    1|2)
+        # Clean legacy symlinks/configs if present
+        rm -f "$HOME/.local/bin/llm-re-wiki" 2>/dev/null || true
+        rm -rf "$HOME/.config/llm-re-wiki" 2>/dev/null || true
+        # Remove the MCP server registration that install.sh added to Claude Code (if any)
+        if command -v claude >/dev/null 2>&1 && claude mcp get llm-re-wiki >/dev/null 2>&1; then
+            claude mcp remove llm-re-wiki --scope user >/dev/null 2>&1 \
+                && printf "[*] Removed the 'llm-re-wiki' MCP server from Claude Code.\n" || true
+        fi
+        ;;
+esac
 
 case "$CHOICE" in
     1)

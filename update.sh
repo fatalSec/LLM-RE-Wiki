@@ -125,6 +125,12 @@ if [ -d "$VENV_DIR" ] && [ -x "$VENV_DIR/bin/pip" ]; then
     if "$VENV_DIR/bin/pip" install -q -r "$VAULT_DIR/.kb/scripts/requirements.txt"; then
         printf "  %b[✓] Dependencies up to date.%b\n" "$GREEN" "$RESET"
     fi
+    # Keep the optional MCP server's dependency current, only if it was enabled at install time
+    if "$VENV_DIR/bin/python3" -c "import mcp" >/dev/null 2>&1 && [ -f "$VAULT_DIR/.kb/mcp/requirements-mcp.txt" ]; then
+        if "$VENV_DIR/bin/pip" install -q -r "$VAULT_DIR/.kb/mcp/requirements-mcp.txt"; then
+            printf "  %b[✓] MCP server dependency up to date.%b\n" "$GREEN" "$RESET"
+        fi
+    fi
 fi
 
 # 6. Idempotent Secondary Index Rebuild & Link Validation
