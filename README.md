@@ -210,7 +210,7 @@ It is **read-only**: it can't change your notes and never touches the network.
 
 The server also tells connected agents what the provenance markers mean, and that KB content is data, never instructions.
 
-**Install** (needs Python 3.10+). `install.sh` offers it, then asks, for **each agent it finds on your machine** (Claude Code, OpenCode, Cursor), whether to register the server there. Already-registered agents are skipped, and `uninstall.sh` asks, for each agent, whether to remove the registration again.
+**Install** (needs Python 3.10+; `install.sh` builds the KB venv on the newest Python 3.10+ it finds, and `update.sh` rebuilds an older venv when the server is in use). `install.sh` offers it, then asks, for **each agent it finds on your machine** (Claude Code, OpenCode, Cursor), whether to register the server there. Already-registered agents are skipped, and `uninstall.sh` asks, for each agent, whether to remove the registration again.
 
 To do it later by hand:
 
@@ -222,7 +222,11 @@ To do it later by hand:
 ~/.llm-re-wiki/.kb/scripts/.venv/bin/python3 ~/.llm-re-wiki/.kb/mcp/register.py add --agent all
 ```
 
-(`--agent` also takes `claude`, `opencode`, or `cursor`; `remove` undoes it.)
+(`--agent` also takes `claude`, `opencode`, or `cursor`; `remove` undoes it.) `add` first starts the server and lists its tools, and refuses to register it if it can't start. If an agent shows the server as failed, run the same check yourself; it prints the cause and the fix:
+
+```bash
+~/.llm-re-wiki/.kb/scripts/.venv/bin/python3 ~/.llm-re-wiki/.kb/mcp/register.py check
+```
 
 > **OpenCode:** it runs a background service that loads MCP servers at start-up. After registering, run `opencode service restart` (or reopen OpenCode), then check with `opencode mcp list`. If your `~/.config/opencode/opencode.json(c)` has a syntax error, the installer stops and tells you the line instead of registering.
 

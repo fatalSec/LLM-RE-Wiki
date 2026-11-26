@@ -4,8 +4,10 @@ Register / unregister the LLM-RE-WIKI MCP server with the AI agents installed on
 
 Usage:
     register.py detect                         list installed agents that support MCP
+    register.py check                          start the server and list its tools; exit 1 if it can't start
     register.py status  --agent <name>         exit 0 if registered, 1 if not
-    register.py add     --agent <name|all>     register (skips agents where it already is)
+    register.py add     --agent <name|all>     register (skips agents where it already is);
+                                               refuses if `check` fails, so a broken server is never registered
     register.py remove  --agent <name|all>     unregister
 
 Agents:
@@ -168,7 +170,108 @@ def is_registered(agent: str) -> bool:
     raise ValueError(agent)
 
 
+# ---------------------------------------------------------------------------
+# Preflight: never register a server that can't start
+# ---------------------------------------------------------------------------
+
+class ServerBroken(Exception):
+    pass
+
+
+PREFLIGHT_TIMEOUT = 30  # seconds; first start can be slow while Python compiles the SDK
+_preflight_result: str | None = None
+
+_KB_VENV = SERVER.parents[1] / "scripts" / ".venv"  # always the KB's own venv, never the running Python's prefix
+_FIX = (f"Fix: rebuild the KB venv on Python 3.10+ and install the MCP dependency, e.g.\n"
+        f"    rm -rf {_KB_VENV}\n"
+        f"    python3.12 -m venv {_KB_VENV}\n"
+        f"    {_KB_VENV / 'bin' / 'pip'} install -r {SERVER.parents[1] / 'scripts' / 'requirements.txt'} "
+        f"-r {SERVER.parent / 'requirements-mcp.txt'}\n"
+        f"then register again with {_KB_VENV / 'bin' / 'python3'} {Path(__file__).resolve()} add\n"
+        f"(update.sh does the rebuild automatically when a Python 3.10+ is installed; macOS: brew install python@3.12)")
+
+
+def preflight() -> str:
+    """Starts the server exactly as agents will (PYTHON + SERVER over stdio), sends initialize,
+    notifications/initialized and tools/list, and returns a one-line summary. Raises ServerBroken
+    with the cause and the fix. The server keeps running after answering, so stdout is read line
+    by line until the tools/list reply arrives (not communicate(), which would wait for exit)."""
+    global _preflight_result
+    if _preflight_result is not None:
+        return _preflight_result
+    if sys.version_info < (3, 10):
+        raise ServerBroken(f"{PYTHON} is Python {sys.version_info.major}.{sys.version_info.minor}; "
+                           f"the MCP server needs 3.10+.\n{_FIX}")
+    r = _run([PYTHON, "-c", "import mcp"])
+    if r.returncode:
+        raise ServerBroken(f"the 'mcp' package is not installed in {PYTHON}.\n{_FIX}")
+
+    import queue
+    import tempfile
+    import threading
+    import time
+
+    with tempfile.TemporaryFile(mode="w+") as err:
+        proc = subprocess.Popen([PYTHON, str(SERVER)], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                stderr=err, text=True, bufsize=1)
+        lines: queue.Queue = queue.Queue()
+
+        def pump() -> None:
+            for out_line in proc.stdout:
+                lines.put(out_line)
+            lines.put(None)  # EOF: the server exited
+
+        threading.Thread(target=pump, daemon=True).start()
+
+        def fail(reason: str) -> ServerBroken:
+            err.seek(0)
+            tail = "\n".join(err.read().strip().splitlines()[-5:])
+            return ServerBroken(f"{reason}" + (f"\nServer error output:\n{tail}" if tail else "") + f"\n{_FIX}")
+
+        try:
+            for msg in (
+                {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {
+                    "protocolVersion": "2025-06-18", "capabilities": {},
+                    "clientInfo": {"name": "llm-re-wiki-preflight", "version": "1"}}},
+                {"jsonrpc": "2.0", "method": "notifications/initialized"},
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list"},
+            ):
+                proc.stdin.write(json.dumps(msg) + "\n")
+            proc.stdin.flush()
+
+            deadline = time.monotonic() + PREFLIGHT_TIMEOUT
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    raise fail(f"the server did not answer tools/list within {PREFLIGHT_TIMEOUT}s.")
+                try:
+                    line = lines.get(timeout=remaining)
+                except queue.Empty:
+                    continue
+                if line is None:
+                    raise fail(f"the server exited during start-up (exit code {proc.wait()}).")
+                try:
+                    reply = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                if reply.get("id") != 2:
+                    continue
+                if "error" in reply:
+                    raise fail(f"tools/list returned an error: {reply['error']}")
+                tools = [t.get("name") for t in reply.get("result", {}).get("tools", [])]
+                if not tools:
+                    raise fail("the server started but lists no tools.")
+                _preflight_result = f"server starts and lists {len(tools)} tools ({', '.join(tools)})"
+                return _preflight_result
+        except (BrokenPipeError, OSError) as e:
+            raise fail(f"could not talk to the server ({e}).") from None
+        finally:
+            proc.kill()
+            proc.wait()
+
+
 def add(agent: str) -> str:
+    preflight()  # raises ServerBroken: nothing is written for a server that can't start
     if is_registered(agent):
         return "already registered"
     if agent == "claude":
@@ -232,13 +335,24 @@ def remove(agent: str) -> str:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Register the LLM-RE-WIKI MCP server with installed agents.")
-    parser.add_argument("action", choices=["detect", "status", "add", "remove"])
+    parser.add_argument("action", choices=["detect", "check", "status", "add", "remove"])
     parser.add_argument("--agent", default="all", help="claude | opencode | cursor | all (default: all)")
     args = parser.parse_args()
 
     if args.action == "detect":
         print(" ".join(detect()))
         return 0
+
+    if args.action in ("check", "add"):
+        try:
+            summary = preflight()
+        except ServerBroken as e:
+            print(f"  [!] MCP server can't start, so it was not registered: {e}" if args.action == "add"
+                  else f"  [!] MCP server can't start: {e}")
+            return 1
+        if args.action == "check":
+            print(f"  [✓] MCP server OK: {summary}")
+            return 0
 
     if args.agent == "all":
         agents = detect()

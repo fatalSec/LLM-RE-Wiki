@@ -127,12 +127,31 @@ if ! command -v git >/dev/null 2>&1; then
 fi
 printf "  %b[✓]%b Git: %s\n" "$GREEN" "$RESET" "$(git --version | head -n1)"
 
-if ! command -v python3 >/dev/null 2>&1; then
+# Prints the newest Python >= 3.10 on PATH (python3.14 … python3.10, then python3).
+# Falls back to plain python3 (core scripts run on 3.9; the MCP server needs 3.10+).
+pick_python() {
+    local cand path
+    for cand in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
+        path="$(command -v "$cand" 2>/dev/null)" || continue
+        if "$path" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; then
+            echo "$path"
+            return
+        fi
+    done
+    command -v python3 2>/dev/null || true
+}
+
+PY_BIN="$(pick_python)"
+if [ -z "$PY_BIN" ]; then
     printf "%b[X] python3 is required but not installed.%b\n" "$RED" "$RESET" >&2
     exit 1
 fi
-PY_VER="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-printf "  %b[✓]%b Python: %s (Python %s)\n" "$GREEN" "$RESET" "$(command -v python3)" "$PY_VER"
+PY_VER="$("$PY_BIN" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+printf "  %b[✓]%b Python: %s (Python %s)\n" "$GREEN" "$RESET" "$PY_BIN" "$PY_VER"
+MCP_PY_HINT="install one (macOS: brew install python@3.12) and re-run install.sh"
+if ! "$PY_BIN" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+    printf "  %b[!] No Python 3.10+ found. The KB scripts work, but the optional MCP server needs 3.10+: %s.%b\n" "$YELLOW" "$MCP_PY_HINT" "$RESET"
+fi
 
 if ! command -v curl >/dev/null 2>&1; then
     printf "%b[!] curl is not installed. Recommended for article ingestion.%b\n" "$YELLOW" "$RESET"
@@ -307,8 +326,16 @@ printf "  %b[✓] CLAUDE.md:%b Present (for Claude Code)\n" "$GREEN" "$RESET"
 if [ "$ARG_NO_VENV" -eq 0 ]; then
     printf "\n%b==> Setting up Python virtual environment...%b\n" "$BOLD" "$RESET"
     VENV_DIR="$TARGET_DIR/.kb/scripts/.venv"
+    # An existing venv on Python < 3.10 can't run the MCP server: rebuild it when a newer Python exists
+    if [ -x "$VENV_DIR/bin/python3" ] \
+        && ! "$VENV_DIR/bin/python3" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null \
+        && "$PY_BIN" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)'; then
+        printf "  [*] Existing venv uses Python %s; rebuilding it on Python %s...\n" \
+            "$("$VENV_DIR/bin/python3" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" "$PY_VER"
+        rm -rf "$VENV_DIR"
+    fi
     if [ ! -d "$VENV_DIR" ]; then
-        python3 -m venv "$VENV_DIR"
+        "$PY_BIN" -m venv "$VENV_DIR"
     fi
 
     if [ -x "$VENV_DIR/bin/pip" ]; then
@@ -388,7 +415,9 @@ if [ "$ARG_NO_MCP" -eq 0 ] && [ -x "$VENV_PY" ]; then
                 ;;
         esac
     else
-        printf "  %b[-] Skipped: the MCP server needs Python 3.10+ (found %s).%b\n" "$YELLOW" "$PY_VER" "$RESET"
+        printf "  %b[!] Skipped: the MCP server needs Python 3.10+, but the KB venv uses Python %s.%b\n" "$YELLOW" \
+            "$("$VENV_PY" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" "$RESET"
+        printf "      To enable it, %s.\n" "$MCP_PY_HINT"
     fi
 fi
 

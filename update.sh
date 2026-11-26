@@ -119,16 +119,73 @@ fi
 
 # 5. Idempotent Python Virtualenv Dependency Check
 VENV_DIR="$VAULT_DIR/.kb/scripts/.venv"
+REGISTER_PY="$VAULT_DIR/.kb/mcp/register.py"
+MCP_REQS="$VAULT_DIR/.kb/mcp/requirements-mcp.txt"
+
+py_ok() { "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' 2>/dev/null; }
+py_ver() { "$1" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")'; }
+# Prints the newest Python >= 3.10 on PATH, or nothing
+pick_python() {
+    local cand path
+    for cand in python3.14 python3.13 python3.12 python3.11 python3.10 python3; do
+        path="$(command -v "$cand" 2>/dev/null)" || continue
+        if py_ok "$path"; then
+            echo "$path"
+            return
+        fi
+    done
+}
+
+# Is the optional MCP server in use? Its package imports, or an agent has it registered
+# (a registration whose venv lacks the package is exactly what this step repairs).
+MCP_WANTED=0
+if [ -f "$MCP_REQS" ] && [ -f "$REGISTER_PY" ] && [ -x "$VENV_DIR/bin/python3" ]; then
+    if "$VENV_DIR/bin/python3" -c "import mcp" >/dev/null 2>&1; then
+        MCP_WANTED=1
+    else
+        for MCP_AGENT in $("$VENV_DIR/bin/python3" "$REGISTER_PY" detect 2>/dev/null || true); do
+            if "$VENV_DIR/bin/python3" "$REGISTER_PY" status --agent "$MCP_AGENT" >/dev/null 2>&1; then
+                MCP_WANTED=1
+                break
+            fi
+        done
+    fi
+fi
+
+# The MCP server needs Python 3.10+: rebuild a venv made on an older Python
+VENV_REBUILT=0
+if [ "$MCP_WANTED" -eq 1 ] && ! py_ok "$VENV_DIR/bin/python3"; then
+    NEW_PY="$(pick_python)"
+    if [ -n "$NEW_PY" ]; then
+        printf "[*] The MCP server needs Python 3.10+, but the KB venv uses Python %s.\n" "$(py_ver "$VENV_DIR/bin/python3")"
+        printf "    Rebuilding it on %s (Python %s)...\n" "$NEW_PY" "$(py_ver "$NEW_PY")"
+        rm -rf "$VENV_DIR"
+        "$NEW_PY" -m venv "$VENV_DIR"
+        VENV_REBUILT=1
+    else
+        printf "%b[!] The MCP server is registered but needs Python 3.10+, and none was found (venv: Python %s).%b\n" \
+            "$YELLOW" "$(py_ver "$VENV_DIR/bin/python3")" "$RESET"
+        printf "    Install one (macOS: brew install python@3.12) and run update.sh again.\n"
+    fi
+fi
+
 if [ -d "$VENV_DIR" ] && [ -x "$VENV_DIR/bin/pip" ]; then
     printf "[*] Syncing virtual environment dependencies...\n"
     "$VENV_DIR/bin/pip" install -q --upgrade pip 2>/dev/null || true
     if "$VENV_DIR/bin/pip" install -q -r "$VAULT_DIR/.kb/scripts/requirements.txt"; then
         printf "  %b[✓] Dependencies up to date.%b\n" "$GREEN" "$RESET"
     fi
-    # Keep the optional MCP server's dependency current, only if it was enabled at install time
-    if "$VENV_DIR/bin/python3" -c "import mcp" >/dev/null 2>&1 && [ -f "$VAULT_DIR/.kb/mcp/requirements-mcp.txt" ]; then
-        if "$VENV_DIR/bin/pip" install -q -r "$VAULT_DIR/.kb/mcp/requirements-mcp.txt"; then
+    # Keep the optional MCP server's dependency current, only if it is in use
+    if [ "$MCP_WANTED" -eq 1 ] && py_ok "$VENV_DIR/bin/python3"; then
+        if "$VENV_DIR/bin/pip" install -q -r "$MCP_REQS"; then
             printf "  %b[✓] MCP server dependency up to date.%b\n" "$GREEN" "$RESET"
+        fi
+        if "$VENV_DIR/bin/python3" "$REGISTER_PY" check; then
+            if [ "$VENV_REBUILT" -eq 1 ]; then
+                printf "      Restart your agents to reload it (OpenCode: opencode service restart).\n"
+            fi
+        else
+            printf "  %b[!] The MCP server still can't start (details above).%b\n" "$YELLOW" "$RESET"
         fi
     fi
 fi
